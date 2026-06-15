@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Users, BookOpen } from 'lucide-react';
+import { Home, Users, BookOpen, Sparkles } from 'lucide-react';
 import { motion } from 'motion/react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -13,7 +13,8 @@ export default function Navigation() {
 
   const links = [
     { to: '/', icon: Home, label: 'Partidos' },
-    { to: '/tribuna', icon: Users, label: 'La Tribuna' },
+    { to: '/tribuna', icon: Users, label: 'Tribuna' },
+    { to: '/ia', icon: Sparkles, label: 'IA' },
     { to: '/reglas', icon: BookOpen, label: 'Reglas' },
   ];
 
@@ -27,7 +28,7 @@ export default function Navigation() {
               key={to}
               to={to}
               className={cn(
-                "relative flex items-center gap-2 px-3 py-3 transition-colors text-sm font-medium active:scale-95",
+                "relative flex items-center gap-1.5 px-2.5 md:px-3 py-3 transition-colors text-sm font-medium active:scale-95",
                 isActive ? "text-[#ce1126]" : "text-slate-500 hover:text-slate-900"
               )}
             >

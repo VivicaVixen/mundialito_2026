@@ -84,28 +84,28 @@ export default function LaTribuna() {
   const isAdmin = user?.username?.toLowerCase() === ADMIN_USERNAME;
   const selectedUser = users.find(u => u.id === selectedUserId);
 
-  // Al ver a otro usuario, solo se muestran partidos ya cerrados (no espiar
-  // predicciones). El admin ve todo para poder editar.
-  const now = Date.now();
-  const visibleMatches = matches.filter(m => {
-    const isLocked = now >= m.lockTime || m.status !== 'PENDING';
-    return isLocked || selectedUserId === user?.id || isAdmin;
-  });
+  // Cualquiera puede ver (espiar) las predicciones de cualquier jugador.
+  const hasPredFor = (id: string) => currentPredictions.some(p => p.matchId === id);
 
-  // Tres grupos: en vivo (fijo arriba), sin puntuar (pendientes/cerrados sin
-  // finalizar) y puntuados (finalizados). El partido en vivo se queda arriba
-  // con display permanente hasta que pase a puntuado.
+  // Cuatro grupos:
+  //  1) En vivo (fijo arriba)             → status LIVE
+  //  2) Puntuados (finalizados con pred.) → status FINISHED y el jugador predijo
+  //  3) Sin puntuar (pendientes con pred.)→ status PENDING y el jugador predijo
+  //  4) Sin predicción                    → el jugador no predijo (no LIVE)
   const liveMatches: Match[] = [];
-  const sinPuntuar: Match[] = [];
   const puntuados: Match[] = [];
-  for (const m of visibleMatches) {
+  const sinPuntuar: Match[] = [];
+  const sinPrediccion: Match[] = [];
+  for (const m of matches) {
     if (m.status === 'LIVE') liveMatches.push(m);
+    else if (!hasPredFor(m.id)) sinPrediccion.push(m);
     else if (m.status === 'FINISHED') puntuados.push(m);
     else sinPuntuar.push(m);
   }
   liveMatches.sort((a, b) => a.startTime - b.startTime);
-  sinPuntuar.sort((a, b) => a.startTime - b.startTime);
   puntuados.sort((a, b) => b.startTime - a.startTime); // más recientes primero
+  sinPuntuar.sort((a, b) => a.startTime - b.startTime);
+  sinPrediccion.sort((a, b) => a.startTime - b.startTime);
 
   const renderMatchRow = (m: Match) => {
     const pred = currentPredictions.find(p => p.matchId === m.id);
@@ -174,7 +174,8 @@ export default function LaTribuna() {
     </motion.div>
   );
 
-  const hasAnyVisible = liveMatches.length + sinPuntuar.length + puntuados.length > 0;
+  const hasAnyVisible =
+    liveMatches.length + puntuados.length + sinPuntuar.length + sinPrediccion.length > 0;
 
   return (
     <div className="space-y-6">
@@ -249,14 +250,19 @@ export default function LaTribuna() {
               {stagger(liveMatches)}
             </CollapsibleSection>
           )}
+          {puntuados.length > 0 && (
+            <CollapsibleSection title="✓ Puntuados" count={puntuados.length}>
+              {stagger(puntuados)}
+            </CollapsibleSection>
+          )}
           {sinPuntuar.length > 0 && (
             <CollapsibleSection title="⏳ Sin puntuar" count={sinPuntuar.length}>
               {stagger(sinPuntuar)}
             </CollapsibleSection>
           )}
-          {puntuados.length > 0 && (
-            <CollapsibleSection title="✓ Puntuados" count={puntuados.length}>
-              {stagger(puntuados)}
+          {sinPrediccion.length > 0 && (
+            <CollapsibleSection title="🔮 Sin predicción" count={sinPrediccion.length}>
+              {stagger(sinPrediccion)}
             </CollapsibleSection>
           )}
         </div>

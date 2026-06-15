@@ -5,6 +5,7 @@ import { useAutoReload } from './lib/useAutoReload';
 import Dashboard from './pages/Dashboard';
 import LaTribuna from './pages/LaTribuna';
 import Rules from './pages/Rules';
+import AskAI from './pages/AskAI';
 import Navigation from './components/Navigation';
 import { AuthBanner } from './components/AuthBanner';
 
@@ -39,6 +40,7 @@ function Shell() {
             <Routes location={location}>
               <Route path="/" element={<Dashboard />} />
               <Route path="/tribuna" element={<LaTribuna />} />
+              <Route path="/ia" element={<AskAI />} />
               <Route path="/reglas" element={<Rules />} />
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>

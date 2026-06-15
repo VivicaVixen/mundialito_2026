@@ -57,6 +57,22 @@ export default function Dashboard() {
   jugados.sort((a, b) => b.startTime - a.startTime);
   proximos.sort((a, b) => a.startTime - b.startTime);
 
+  // Recordatorio (adicional): partidos predecibles que arrancan en las próximas
+  // 24 h y para los que el usuario actual aún NO tiene predicción. Estos partidos
+  // también siguen apareciendo en su sección normal (Hoy / Próximos).
+  const ONE_DAY = 24 * 60 * 60 * 1000;
+  const sinPrediccion24h: Match[] = user
+    ? matches
+        .filter(
+          m =>
+            m.status === 'PENDING' &&
+            m.startTime > now &&
+            m.startTime <= now + ONE_DAY &&
+            !predictions[`${user.id}_${m.id}`],
+        )
+        .sort((a, b) => a.startTime - b.startTime)
+    : [];
+
   const renderCard = (match: Match) => {
     // La predicción del usuario actual (cada predicción se guarda con id `uid_matchId`).
     const pred = user ? predictions[`${user.id}_${match.id}`] : undefined;
@@ -116,6 +132,7 @@ export default function Dashboard() {
       ) : (
         <div className="flex flex-col gap-4">
           <Section title="⚡ Hoy y en vivo" items={enVivo} />
+          <Section title="⏰ Sin predicción (24h)" items={sinPrediccion24h} />
           <Section title="✓ Jugados" items={jugados} />
           <Section title="📅 Próximos" items={proximos} />
         </div>
