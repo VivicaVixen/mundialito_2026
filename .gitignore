@@ -7,6 +7,9 @@ coverage/
 .env*
 !.env.example
 
+# Config local de herramientas (no subir)
+.claude/
+
 # Clave de servicio de Firebase — NUNCA subir
 *firebase-adminsdk*.json
 service-account*.json
