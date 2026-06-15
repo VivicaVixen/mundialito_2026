@@ -5,7 +5,7 @@ import { MatchCard } from '../components/MatchCard';
 import { useAuth } from '../lib/auth';
 import { syncMatches } from '../lib/importMatches';
 import { ADMIN_USERNAME } from '../config';
-import { Prediction, Match } from '../types';
+import { Match } from '../types';
 
 const COLOMBIA_TZ = 'America/Bogota';
 const dayKey = (ms: number) => formatInTimeZone(ms, COLOMBIA_TZ, 'yyyy-MM-dd');
@@ -56,7 +56,8 @@ export default function Dashboard() {
   proximos.sort((a, b) => a.startTime - b.startTime);
 
   const renderCard = (match: Match) => {
-    const pred = (Object.values(predictions) as Prediction[]).find(p => p.matchId === match.id);
+    // La predicción del usuario actual (cada predicción se guarda con id `uid_matchId`).
+    const pred = user ? predictions[`${user.id}_${match.id}`] : undefined;
     return (
       <MatchCard
         key={match.id}

@@ -45,6 +45,23 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, userPrediction, onS
     return () => clearInterval(interval);
   }, [match.lockTime, match.status]);
 
+  // Rellena los inputs con la predicción del usuario cuando carga o cambia.
+  // (La predicción de cada usuario solo cambia cuando él mismo la guarda, así
+  // que esto no pisa lo que está escribiendo.)
+  useEffect(() => {
+    setHomeScore(userPrediction?.homeScore?.toString() ?? '');
+    setAwayScore(userPrediction?.awayScore?.toString() ?? '');
+    setHasPenalties(userPrediction?.hasPenalties ?? false);
+    setPenaltyHome(userPrediction?.penaltyHome?.toString() ?? '');
+    setPenaltyAway(userPrediction?.penaltyAway?.toString() ?? '');
+  }, [
+    userPrediction?.homeScore,
+    userPrediction?.awayScore,
+    userPrediction?.hasPenalties,
+    userPrediction?.penaltyHome,
+    userPrediction?.penaltyAway,
+  ]);
+
   const isKnockout = ['R32', 'R16', 'QF', 'SF', 'FINAL'].includes(match.stage);
   const needsPenaltiesCheckbox = isKnockout && homeScore !== '' && homeScore === awayScore;
 
