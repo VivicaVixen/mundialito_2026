@@ -7,9 +7,15 @@ import { useAuth } from '../lib/auth';
 import { buildAiContext } from '../lib/aiContext';
 import { Prediction, User } from '../types';
 
+interface Source {
+  title: string;
+  uri: string;
+}
+
 interface ChatMsg {
   role: 'user' | 'ai';
   text: string;
+  sources?: Source[];
 }
 
 const SUGGESTIONS = [
@@ -18,19 +24,37 @@ const SUGGESTIONS = [
   '¿Cómo le fue a Colombia y qué dicen las noticias?',
 ];
 
-/** Renderiza texto con **negritas** estilo markdown, conservando saltos de línea. */
-function RichText({ text }: { text: string }) {
-  const parts = text.split('**');
+/** Resalta los **negritas** dentro de una línea. */
+function inline(text: string, keyPrefix: string) {
+  return text.split('**').map((p, i) =>
+    i % 2 === 1 ? (
+      <strong key={`${keyPrefix}-${i}`} className="font-bold text-slate-900">{p}</strong>
+    ) : (
+      <span key={`${keyPrefix}-${i}`}>{p}</span>
+    ),
+  );
+}
+
+/** Markdown ligero: negritas, viñetas (*, -, •) y párrafos. */
+function Markdown({ text }: { text: string }) {
+  const lines = text.split('\n');
   return (
-    <span className="whitespace-pre-wrap break-words">
-      {parts.map((p, i) =>
-        i % 2 === 1 ? (
-          <strong key={i} className="font-bold text-slate-900">{p}</strong>
-        ) : (
-          <span key={i}>{p}</span>
-        ),
-      )}
-    </span>
+    <div className="space-y-1.5 break-words">
+      {lines.map((line, i) => {
+        const trimmed = line.trim();
+        if (trimmed === '') return <div key={i} className="h-1.5" />;
+        const bullet = /^([*\-•])\s+/.exec(trimmed);
+        if (bullet) {
+          return (
+            <div key={i} className="flex gap-2 pl-1">
+              <span className="text-[#003893] mt-0.5 shrink-0">•</span>
+              <span className="flex-1">{inline(trimmed.slice(bullet[0].length), `l${i}`)}</span>
+            </div>
+          );
+        }
+        return <p key={i}>{inline(trimmed, `l${i}`)}</p>;
+      })}
+    </div>
   );
 }
 
@@ -75,7 +99,7 @@ export default function AskAI() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || `Error ${res.status}`);
-      setMessages(prev => [...prev, { role: 'ai', text: data.answer }]);
+      setMessages(prev => [...prev, { role: 'ai', text: data.answer, sources: data.sources }]);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'No se pudo consultar a la IA.';
       setError(msg);
@@ -120,11 +144,29 @@ export default function AskAI() {
             animate={{ opacity: 1, y: 0 }}
             className={`max-w-[88%] rounded-2xl px-4 py-3 text-sm ${
               m.role === 'user'
-                ? 'self-end bg-[#003893] text-white'
+                ? 'self-end bg-[#003893] text-white whitespace-pre-wrap break-words'
                 : 'self-start bg-white border border-slate-100 text-slate-700 shadow-sm'
             }`}
           >
-            <RichText text={m.text} />
+            {m.role === 'ai' ? <Markdown text={m.text} /> : m.text}
+            {m.role === 'ai' && m.sources && m.sources.length > 0 && (
+              <div className="mt-3 pt-2 border-t border-slate-100">
+                <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400">Fuentes web</span>
+                <div className="flex flex-col gap-1 mt-1">
+                  {m.sources.slice(0, 5).map((s, j) => (
+                    <a
+                      key={j}
+                      href={s.uri}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-[#003893] hover:underline truncate"
+                    >
+                      🔗 {s.title}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
           </motion.div>
         ))}
 
