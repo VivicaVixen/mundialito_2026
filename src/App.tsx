@@ -9,22 +9,24 @@ import { AuthBanner } from './components/AuthBanner';
 
 function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 pb-20 md:pb-0 pt-0">
+    <div className="min-h-screen bg-slate-50 text-slate-900">
       <div className="sticky top-0 z-50 flex flex-col shadow-sm">
         {/* Banner de Premio */}
-        <div className="bg-[#FCD116] text-[#003893] text-center py-2 font-bold text-sm tracking-wide border-b border-[#FCD116]/80 flex justify-center items-center gap-2">
-          <span className="text-xl">🏆</span>
-          <span>PREMIO: 100.000 COP</span>
-          <span className="text-xl">🏆</span>
+        <div className="bg-[#FCD116] text-[#003893] text-center py-1.5 border-b border-[#FCD116]/80 flex flex-col items-center leading-tight">
+          <div className="flex items-center justify-center gap-2 font-bold text-sm tracking-wide">
+            <span className="text-xl">🏆</span>
+            <span>PREMIO: 100.000 COP</span>
+            <span className="text-xl">🏆</span>
+          </div>
+          <span className="text-[10px] font-semibold tracking-wide opacity-80">Inscripción gratis</span>
         </div>
         <AuthBanner />
+        <Navigation />
       </div>
-      
-      <main className="p-4 md:p-8 max-w-2xl mx-auto pb-24 md:pb-8">
+
+      <main className="p-4 md:p-8 max-w-2xl mx-auto pb-12">
         {children}
       </main>
-      
-      <Navigation />
     </div>
   );
 }
