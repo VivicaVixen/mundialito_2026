@@ -57,8 +57,12 @@ export default function Rules() {
               <span className="text-amber-600 font-bold">+1 pt</span>
             </li>
             <li className="flex justify-between items-center text-sm font-medium p-3 bg-slate-50 rounded-xl">
-              <span>Bono de Penales (acertar en rondas KO)</span>
+              <span>Acertar que el partido se define por penales (rondas KO)</span>
               <span className="text-amber-600 font-bold">+3 pts</span>
+            </li>
+            <li className="flex justify-between items-center text-sm font-medium p-3 rounded-xl border border-slate-100">
+              <span>Por cada marcador de la tanda de penales acertado (local y visitante)</span>
+              <span className="text-amber-600 font-bold">+1 pt c/u</span>
             </li>
           </ul>
         </section>

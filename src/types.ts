@@ -33,4 +33,6 @@ export interface Prediction {
   points: number;
   homeCleanSheet?: boolean;
   awayCleanSheet?: boolean;
+  penaltyHome?: number; // marcador de la tanda predicho (local)
+  penaltyAway?: number; // marcador de la tanda predicho (visitante)
 }

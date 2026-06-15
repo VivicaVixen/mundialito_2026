@@ -42,10 +42,23 @@ export function useMatchesAndPredictions() {
     };
   }, []);
 
-  const savePrediction = async (matchId: string, homeScore: number, awayScore: number, hasPenalties: boolean = false) => {
+  const savePrediction = async (
+    matchId: string,
+    homeScore: number,
+    awayScore: number,
+    hasPenalties: boolean = false,
+    penaltyHome?: number,
+    penaltyAway?: number,
+  ) => {
     if (!user) return;
     const predId = `${user.id}_${matchId}`;
     const ref = doc(db, 'predictions', predId);
+
+    // Solo se guarda el marcador de la tanda si se predijo que hay penales.
+    const penaltyFields =
+      hasPenalties && penaltyHome !== undefined && penaltyAway !== undefined
+        ? { penaltyHome, penaltyAway }
+        : {};
 
     if (predictions[predId]) {
       // Editar: solo los campos mutables. NO tocar createdAt/points (las reglas
@@ -54,6 +67,7 @@ export function useMatchesAndPredictions() {
         homeScore,
         awayScore,
         hasPenalties,
+        ...penaltyFields,
         updatedAt: serverTimestamp(),
       });
     } else {
@@ -65,6 +79,7 @@ export function useMatchesAndPredictions() {
         homeScore,
         awayScore,
         hasPenalties,
+        ...penaltyFields,
         points: 0,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),

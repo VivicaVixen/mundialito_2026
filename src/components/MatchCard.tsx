@@ -9,9 +9,9 @@ import { saveMatchResult } from '../lib/importMatches';
 const COLOMBIA_TZ = 'America/Bogota';
 
 interface MatchCardProps {
-  match: Match; 
-  userPrediction?: Prediction; 
-  onSave: (h: number, a: number, p: boolean) => void | Promise<void>;
+  match: Match;
+  userPrediction?: Prediction;
+  onSave: (h: number, a: number, p: boolean, ph?: number, pa?: number) => void | Promise<void>;
 }
 
 export const MatchCard: React.FC<MatchCardProps> = ({ match, userPrediction, onSave }) => {
@@ -19,6 +19,8 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, userPrediction, onS
   const [homeScore, setHomeScore] = useState(userPrediction?.homeScore?.toString() || '');
   const [awayScore, setAwayScore] = useState(userPrediction?.awayScore?.toString() || '');
   const [hasPenalties, setHasPenalties] = useState(userPrediction?.hasPenalties || false);
+  const [penaltyHome, setPenaltyHome] = useState(userPrediction?.penaltyHome?.toString() ?? '');
+  const [penaltyAway, setPenaltyAway] = useState(userPrediction?.penaltyAway?.toString() ?? '');
   const [isLocked, setIsLocked] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -27,6 +29,8 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, userPrediction, onS
   const [realAway, setRealAway] = useState(match.awayScore?.toString() ?? '');
   const [realStatus, setRealStatus] = useState<MatchStatus>(match.status);
   const [realPenalties, setRealPenalties] = useState(match.hasPenalties ?? false);
+  const [realPenHome, setRealPenHome] = useState(match.homePenalties?.toString() ?? '');
+  const [realPenAway, setRealPenAway] = useState(match.awayPenalties?.toString() ?? '');
   const [savingResult, setSavingResult] = useState(false);
   const [resultMsg, setResultMsg] = useState('');
 
@@ -41,15 +45,25 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, userPrediction, onS
     return () => clearInterval(interval);
   }, [match.lockTime, match.status]);
 
+  const isKnockout = ['R32', 'R16', 'QF', 'SF', 'FINAL'].includes(match.stage);
+  const needsPenaltiesCheckbox = isKnockout && homeScore !== '' && homeScore === awayScore;
+
   const handleSave = async () => {
     if (homeScore === '' || awayScore === '') return;
     setIsSaving(true);
-    await onSave(parseInt(homeScore), parseInt(awayScore), hasPenalties);
+    const ph = needsPenaltiesCheckbox && hasPenalties && penaltyHome !== '' ? parseInt(penaltyHome, 10) : undefined;
+    const pa = needsPenaltiesCheckbox && hasPenalties && penaltyAway !== '' ? parseInt(penaltyAway, 10) : undefined;
+    await onSave(parseInt(homeScore), parseInt(awayScore), needsPenaltiesCheckbox && hasPenalties, ph, pa);
     setIsSaving(false);
   };
 
-  const isKnockout = ['R32', 'R16', 'QF', 'SF', 'FINAL'].includes(match.stage);
-  const needsPenaltiesCheckbox = isKnockout && homeScore !== '' && homeScore === awayScore;
+  // Comparación para deshabilitar el botón si nada cambió.
+  const unchanged =
+    userPrediction?.homeScore?.toString() === homeScore &&
+    userPrediction?.awayScore?.toString() === awayScore &&
+    (userPrediction?.hasPenalties || false) === (needsPenaltiesCheckbox && hasPenalties) &&
+    (userPrediction?.penaltyHome?.toString() ?? '') === (hasPenalties ? penaltyHome : '') &&
+    (userPrediction?.penaltyAway?.toString() ?? '') === (hasPenalties ? penaltyAway : '');
 
   const handleSaveResult = async () => {
     setSavingResult(true);
@@ -60,6 +74,12 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, userPrediction, onS
         awayScore: realAway === '' ? 0 : parseInt(realAway, 10),
         status: realStatus,
         ...(isKnockout ? { hasPenalties: realPenalties } : {}),
+        ...(isKnockout && realPenalties
+          ? {
+              homePenalties: realPenHome === '' ? 0 : parseInt(realPenHome, 10),
+              awayPenalties: realPenAway === '' ? 0 : parseInt(realPenAway, 10),
+            }
+          : {}),
       });
       setResultMsg('✓ Guardado');
     } catch (e: any) {
@@ -119,15 +139,33 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, userPrediction, onS
       </div>
 
       {needsPenaltiesCheckbox && (!isLocked) && (user) && (
-        <label className="flex items-center gap-2 justify-center text-sm text-slate-600 bg-orange-50 py-2 rounded-xl border border-orange-100 mt-2">
-          <input 
-            type="checkbox" 
-            checked={hasPenalties} 
-            onChange={(e) => setHasPenalties(e.target.checked)}
-            className="w-4 h-4 text-orange-500"
-          />
-          <span>¿Habrá penales?</span>
-        </label>
+        <div className="mt-2 flex flex-col gap-2">
+          <label className="flex items-center gap-2 justify-center text-sm text-slate-600 bg-orange-50 py-2 rounded-xl border border-orange-100">
+            <input
+              type="checkbox"
+              checked={hasPenalties}
+              onChange={(e) => setHasPenalties(e.target.checked)}
+              className="w-4 h-4 text-orange-500"
+            />
+            <span>¿Habrá penales?</span>
+          </label>
+          {hasPenalties && (
+            <div className="flex items-center justify-center gap-2 text-slate-600">
+              <span className="text-xs font-medium">Marcador penales:</span>
+              <input
+                type="number" min={0} value={penaltyHome}
+                onChange={(e) => setPenaltyHome(e.target.value)}
+                className="w-10 h-9 bg-slate-50 border border-slate-200 rounded-lg text-center font-mono outline-none focus:ring-2 focus:ring-orange-300"
+              />
+              <span className="text-slate-300">-</span>
+              <input
+                type="number" min={0} value={penaltyAway}
+                onChange={(e) => setPenaltyAway(e.target.value)}
+                className="w-10 h-9 bg-slate-50 border border-slate-200 rounded-lg text-center font-mono outline-none focus:ring-2 focus:ring-orange-300"
+              />
+            </div>
+          )}
+        </div>
       )}
 
       {match.status === 'PENDING' && !isLocked && (
@@ -139,9 +177,9 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, userPrediction, onS
             Inicia sesión arriba para predecir
           </button>
         ) : (
-          <button 
+          <button
             onClick={handleSave}
-            disabled={isSaving || homeScore === '' || awayScore === '' || (userPrediction?.homeScore?.toString() === homeScore && userPrediction?.awayScore?.toString() === awayScore && userPrediction?.hasPenalties === hasPenalties)}
+            disabled={isSaving || homeScore === '' || awayScore === '' || unchanged}
             className="mt-2 w-full bg-[#003893] text-white font-medium py-3 rounded-xl disabled:bg-slate-100 disabled:text-slate-400 transition-all active:scale-[0.98]"
           >
             {isSaving ? 'Guardando...' : (userPrediction ? 'Actualizar Predicción' : 'Guardar Predicción')}
@@ -201,14 +239,32 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, userPrediction, onS
             </button>
           </div>
           {isKnockout && (
-            <label className="flex items-center gap-2 mt-2 text-xs text-white/80">
-              <input
-                type="checkbox" checked={realPenalties}
-                onChange={(e) => setRealPenalties(e.target.checked)}
-                className="w-4 h-4"
-              />
-              Se definió por penales
-            </label>
+            <div className="mt-2 flex flex-col gap-2">
+              <label className="flex items-center gap-2 text-xs text-white/80">
+                <input
+                  type="checkbox" checked={realPenalties}
+                  onChange={(e) => setRealPenalties(e.target.checked)}
+                  className="w-4 h-4"
+                />
+                Se definió por penales
+              </label>
+              {realPenalties && (
+                <div className="flex items-center gap-2 text-xs text-white/80">
+                  <span>Marcador penales:</span>
+                  <input
+                    type="number" min={0} value={realPenHome}
+                    onChange={(e) => setRealPenHome(e.target.value)}
+                    className="w-10 h-8 bg-white/10 text-white rounded-lg text-center font-mono outline-none focus:ring-2 focus:ring-amber-300"
+                  />
+                  <span className="text-white/50">-</span>
+                  <input
+                    type="number" min={0} value={realPenAway}
+                    onChange={(e) => setRealPenAway(e.target.value)}
+                    className="w-10 h-8 bg-white/10 text-white rounded-lg text-center font-mono outline-none focus:ring-2 focus:ring-amber-300"
+                  />
+                </div>
+              )}
+            </div>
           )}
         </div>
       )}

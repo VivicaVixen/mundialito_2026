@@ -74,7 +74,14 @@ export async function syncMatches(localMatches: Match[]): Promise<number> {
  */
 export async function saveMatchResult(
   matchId: string,
-  result: { homeScore: number; awayScore: number; status: MatchStatus; hasPenalties?: boolean },
+  result: {
+    homeScore: number;
+    awayScore: number;
+    status: MatchStatus;
+    hasPenalties?: boolean;
+    homePenalties?: number;
+    awayPenalties?: number;
+  },
 ): Promise<void> {
   const data: Record<string, unknown> = {
     homeScore: result.homeScore,
@@ -82,5 +89,7 @@ export async function saveMatchResult(
     status: result.status,
   };
   if (result.hasPenalties !== undefined) data.hasPenalties = result.hasPenalties;
+  if (result.homePenalties !== undefined) data.homePenalties = result.homePenalties;
+  if (result.awayPenalties !== undefined) data.awayPenalties = result.awayPenalties;
   await setDoc(doc(collection(db, 'matches'), matchId), data, { merge: true });
 }

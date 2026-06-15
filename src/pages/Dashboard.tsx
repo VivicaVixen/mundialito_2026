@@ -62,7 +62,7 @@ export default function Dashboard() {
         key={match.id}
         match={match}
         userPrediction={pred}
-        onSave={(h, a, p) => savePrediction(match.id, h, a, p)}
+        onSave={(h, a, p, ph, pa) => savePrediction(match.id, h, a, p, ph, pa)}
       />
     );
   };

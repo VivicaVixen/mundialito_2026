@@ -77,6 +77,8 @@ service cloud.firestore {
              data.awayScore is number && data.awayScore >= 0 && data.awayScore <= 50 &&
              data.hasPenalties is bool &&
              data.points is number && data.points >= 0 &&
+             (!('penaltyHome' in data) || (data.penaltyHome is number && data.penaltyHome >= 0 && data.penaltyHome <= 50)) &&
+             (!('penaltyAway' in data) || (data.penaltyAway is number && data.penaltyAway >= 0 && data.penaltyAway <= 50)) &&
              data.createdAt is timestamp &&
              data.updatedAt is timestamp;
     }
@@ -105,7 +107,7 @@ service cloud.firestore {
                       (
                         request.auth.uid == existing().userId &&
                         request.time.toMillis() < get(/databases/$(database)/documents/matches/$(existing().matchId)).data.lockTime &&
-                        incoming().diff(existing()).affectedKeys().hasOnly(['homeScore', 'awayScore', 'hasPenalties', 'updatedAt'])
+                        incoming().diff(existing()).affectedKeys().hasOnly(['homeScore', 'awayScore', 'hasPenalties', 'penaltyHome', 'penaltyAway', 'updatedAt'])
                       ) ||
                       // Let's also allow a client to update points after a match to simulate Cron Live Scoring, since this is simple
                       // Actually, let's limit it to only the admin email for safety, but user isn't admin...

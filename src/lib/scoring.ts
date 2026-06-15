@@ -62,10 +62,19 @@ export function calculatePoints(prediction: Prediction, match: Match): number {
     basePoints += 1;
   }
 
-  // Penalty Bonus
-  // Both must be true
+  // Penalty Bonus (solo eliminatorias)
   if (prediction.hasPenalties === true && match.hasPenalties === true) {
-    basePoints += 3;
+    basePoints += 3; // acertar que el partido se define por penales
+
+    // +1 por cada marcador de la tanda acertado (local y visitante)
+    if (prediction.penaltyHome !== undefined && match.homePenalties !== undefined &&
+        prediction.penaltyHome === match.homePenalties) {
+      basePoints += 1;
+    }
+    if (prediction.penaltyAway !== undefined && match.awayPenalties !== undefined &&
+        prediction.penaltyAway === match.awayPenalties) {
+      basePoints += 1;
+    }
   }
 
   // Multiply based on stage (fallback to x1 if an unknown stage ever appears)
