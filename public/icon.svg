@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Mundialito 2026">
+  <rect width="512" height="512" rx="96" fill="#003893"/>
+  <rect width="512" height="180" rx="0" fill="#FCD116"/>
+  <rect y="332" width="512" height="180" fill="#CE1126"/>
+  <circle cx="256" cy="256" r="96" fill="#ffffff" stroke="#003893" stroke-width="12"/>
+  <path fill="#003893" d="M256 196l34 25-13 40h-42l-13-40z"/>
+  <circle cx="256" cy="256" r="96" fill="none" stroke="#003893" stroke-width="10" opacity="0.25"/>
+</svg>

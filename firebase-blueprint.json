@@ -1,0 +1,67 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "A participant in the quiniela",
+      "type": "object",
+      "properties": {
+        "username": { "type": "string", "description": "The chosen username" },
+        "totalScore": { "type": "number", "description": "Total points accumulated" },
+        "createdAt": { "type": "string", "description": "Timestamp of creation" },
+        "updatedAt": { "type": "string", "description": "Timestamp of last update" }
+      },
+      "required": ["username", "totalScore", "createdAt", "updatedAt"]
+    },
+    "Match": {
+      "title": "Match",
+      "description": "A football match",
+      "type": "object",
+      "properties": {
+        "homeTeam": { "type": "string" },
+        "awayTeam": { "type": "string" },
+        "startTime": { "type": "string", "description": "ISO timestamp of kickoff" },
+        "status": { "type": "string", "enum": ["PENDING", "LIVE", "FINISHED"] },
+        "stage": { "type": "string", "enum": ["GROUP", "R16", "QF", "SF", "FINAL"] },
+        "homeScore": { "type": "number" },
+        "awayScore": { "type": "number" },
+        "hasPenalties": { "type": "boolean" },
+        "homePenalties": { "type": "number", "description": "Optional goals in penalty shootout" },
+        "awayPenalties": { "type": "number" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["homeTeam", "awayTeam", "startTime", "status", "stage", "createdAt", "updatedAt"]
+    },
+    "Prediction": {
+      "title": "Prediction",
+      "description": "A user's prediction for a match",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "username": { "type": "string" },
+        "matchId": { "type": "string" },
+        "homeScore": { "type": "number" },
+        "awayScore": { "type": "number" },
+        "hasPenalties": { "type": "boolean" },
+        "points": { "type": "number" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "username", "matchId", "homeScore", "awayScore", "hasPenalties", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User profiles"
+    },
+    "matches/{matchId}": {
+      "schema": { "$ref": "#/entities/Match" },
+      "description": "Tournament matches"
+    },
+    "predictions/{predictionId}": {
+      "schema": { "$ref": "#/entities/Prediction" },
+      "description": "Predictions made by users"
+    }
+  }
+}

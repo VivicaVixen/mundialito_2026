@@ -1,0 +1,6 @@
+{
+  "name": "Mundialito 2026",
+  "description": "Una quiniela para predecir los partidos del mundial",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
