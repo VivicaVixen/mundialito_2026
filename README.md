@@ -6,13 +6,15 @@ desde el celular.
 
 ## Stack
 
-- **Frontend:** React 19 + Vite + Tailwind CSS (SPA estática, sin backend).
+- **Frontend:** React 19 + Vite + Tailwind CSS (SPA estática).
 - **Datos:** Firebase Auth (usuario + PIN) y Cloud Firestore.
-- **Partidos:** se importan manualmente desde la app con el botón
-  **"Actualizar partidos"** (visible solo para el usuario admin). Descarga el
-  calendario y resultados del Mundial 2026 desde una fuente pública de GitHub y
-  los escribe en Firestore. Las reglas de seguridad solo permiten esa escritura
-  al admin definido en `src/config.ts`.
+- **Partidos:** el botón **"Actualizar partidos"** (visible solo para el admin)
+  llama a la función serverless `api/sync-matches.ts`, que consulta la API del
+  Mundial 2026 (RapidAPI, clave en `RAPIDAPI_KEY`) y devuelve calendario +
+  resultados; el cliente admin los escribe en Firestore. Las reglas solo
+  permiten esa escritura al admin definido en `src/config.ts`. Además, cada
+  tarjeta tiene un panel de admin para **ingresar/editar resultados a mano**
+  (complemento del sync automático).
 
 ## Estructura
 
@@ -33,12 +35,17 @@ npm run dev      # http://localhost:5173
 
 ## Variables de entorno
 
-Ninguna. Ver [.env.example](.env.example).
+| Variable | Para qué |
+| --- | --- |
+| `RAPIDAPI_KEY` | Clave de la API del Mundial 2026 (RapidAPI) usada por `api/sync-matches`. |
+
+Ver [.env.example](.env.example). El login y la base de datos no requieren
+variables.
 
 ## Despliegue
 
 Push a GitHub → importar el repo en Vercel (framework Vite, ya configurado en
-`vercel.json`) → Deploy. No hay variables de entorno que configurar.
+`vercel.json`) → agregar la variable `RAPIDAPI_KEY` → Deploy.
 
 Requisitos en Firebase: tener activado el proveedor **Correo electrónico/
 contraseña** en Authentication, la base de datos Firestore creada, y las reglas

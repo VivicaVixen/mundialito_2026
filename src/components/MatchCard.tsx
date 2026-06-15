@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Match, Prediction } from '../types';
+import { Match, Prediction, MatchStatus } from '../types';
 import { formatInTimeZone } from 'date-fns-tz';
 import { calculatePoints } from '../lib/scoring';
 import { useAuth } from '../lib/auth';
+import { ADMIN_USERNAME } from '../config';
+import { saveMatchResult } from '../lib/importMatches';
 
 const COLOMBIA_TZ = 'America/Bogota';
 
@@ -19,6 +21,14 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, userPrediction, onS
   const [hasPenalties, setHasPenalties] = useState(userPrediction?.hasPenalties || false);
   const [isLocked, setIsLocked] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  const isAdmin = user?.username?.toLowerCase() === ADMIN_USERNAME;
+  const [realHome, setRealHome] = useState(match.homeScore?.toString() ?? '');
+  const [realAway, setRealAway] = useState(match.awayScore?.toString() ?? '');
+  const [realStatus, setRealStatus] = useState<MatchStatus>(match.status);
+  const [realPenalties, setRealPenalties] = useState(match.hasPenalties ?? false);
+  const [savingResult, setSavingResult] = useState(false);
+  const [resultMsg, setResultMsg] = useState('');
 
   useEffect(() => {
     // Check if locked
@@ -40,6 +50,23 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, userPrediction, onS
 
   const isKnockout = ['R32', 'R16', 'QF', 'SF', 'FINAL'].includes(match.stage);
   const needsPenaltiesCheckbox = isKnockout && homeScore !== '' && homeScore === awayScore;
+
+  const handleSaveResult = async () => {
+    setSavingResult(true);
+    setResultMsg('');
+    try {
+      await saveMatchResult(match.id, {
+        homeScore: realHome === '' ? 0 : parseInt(realHome, 10),
+        awayScore: realAway === '' ? 0 : parseInt(realAway, 10),
+        status: realStatus,
+        ...(isKnockout ? { hasPenalties: realPenalties } : {}),
+      });
+      setResultMsg('✓ Guardado');
+    } catch (e: any) {
+      setResultMsg('Error: ' + (e?.message || 'no se pudo guardar'));
+    }
+    setSavingResult(false);
+  };
 
   const dateStr = formatInTimeZone(match.startTime, COLOMBIA_TZ, 'dd MMM - HH:mm');
   
@@ -135,6 +162,54 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, userPrediction, onS
             <span className="block text-2xl font-black text-[#CE1126]">+{currentPoints}</span>
             <span className="text-[10px] uppercase tracking-wider text-blue-600 font-bold">Puntos</span>
           </div>
+        </div>
+      )}
+
+      {isAdmin && (
+        <div className="mt-2 rounded-2xl bg-slate-900 text-white p-3">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-300">Admin · Resultado real</span>
+            {resultMsg && <span className="text-[10px] text-slate-300">{resultMsg}</span>}
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <input
+              type="number" min={0} value={realHome}
+              onChange={(e) => setRealHome(e.target.value)}
+              className="w-12 h-9 bg-white/10 text-white rounded-lg text-center font-mono outline-none focus:ring-2 focus:ring-amber-300"
+            />
+            <span className="text-white/50">-</span>
+            <input
+              type="number" min={0} value={realAway}
+              onChange={(e) => setRealAway(e.target.value)}
+              className="w-12 h-9 bg-white/10 text-white rounded-lg text-center font-mono outline-none focus:ring-2 focus:ring-amber-300"
+            />
+            <select
+              value={realStatus}
+              onChange={(e) => setRealStatus(e.target.value as MatchStatus)}
+              className="h-9 bg-white/10 text-white rounded-lg px-2 text-sm outline-none focus:ring-2 focus:ring-amber-300"
+            >
+              <option value="PENDING" className="text-black">Pendiente</option>
+              <option value="LIVE" className="text-black">En vivo</option>
+              <option value="FINISHED" className="text-black">Final</option>
+            </select>
+            <button
+              onClick={handleSaveResult}
+              disabled={savingResult}
+              className="h-9 px-3 bg-amber-400 text-slate-900 rounded-lg text-xs font-bold active:scale-95 disabled:opacity-50"
+            >
+              {savingResult ? '…' : 'Guardar'}
+            </button>
+          </div>
+          {isKnockout && (
+            <label className="flex items-center gap-2 mt-2 text-xs text-white/80">
+              <input
+                type="checkbox" checked={realPenalties}
+                onChange={(e) => setRealPenalties(e.target.checked)}
+                className="w-4 h-4"
+              />
+              Se definió por penales
+            </label>
+          )}
         </div>
       )}
     </div>

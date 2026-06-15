@@ -1,10 +1,14 @@
 import { useState } from 'react';
+import { formatInTimeZone } from 'date-fns-tz';
 import { useMatchesAndPredictions } from '../lib/db';
 import { MatchCard } from '../components/MatchCard';
 import { useAuth } from '../lib/auth';
-import { importMatches } from '../lib/importMatches';
+import { syncMatches } from '../lib/importMatches';
 import { ADMIN_USERNAME } from '../config';
-import { Prediction } from '../types';
+import { Prediction, Match } from '../types';
+
+const COLOMBIA_TZ = 'America/Bogota';
+const dayKey = (ms: number) => formatInTimeZone(ms, COLOMBIA_TZ, 'yyyy-MM-dd');
 
 export default function Dashboard() {
   const { matches, predictions, savePrediction, loading } = useMatchesAndPredictions();
@@ -18,7 +22,7 @@ export default function Dashboard() {
     setImporting(true);
     setImportMsg('');
     try {
-      const count = await importMatches();
+      const count = await syncMatches(matches);
       setImportMsg(`✓ ${count} partidos actualizados`);
     } catch (e: any) {
       setImportMsg('Error: ' + (e?.message || 'no se pudo actualizar'));
@@ -30,16 +34,52 @@ export default function Dashboard() {
     return <div className="text-center text-slate-500 py-12">Cargando partidos...</div>;
   }
 
-  // Sort: Today/Live first, then pending upcoming, then finished.
-  const liveMatches = matches.filter(m => m.status === 'LIVE');
-  const pendingMatches = matches.filter(m => m.status === 'PENDING').sort((a, b) => a.startTime - b.startTime);
-  const finishedMatches = matches.filter(m => m.status === 'FINISHED').sort((a, b) => b.startTime - a.startTime);
+  // Tres grupos:
+  //  1. Hoy / en vivo  → partidos de hoy o en curso
+  //  2. Jugados        → finalizados (o ya pasados) con resultado y predicción
+  //  3. Próximos       → futuros, abiertos para predecir
+  const now = Date.now();
+  const todayKey = dayKey(now);
+  const enVivo: Match[] = [];
+  const jugados: Match[] = [];
+  const proximos: Match[] = [];
 
-  const sortedMatches = [...liveMatches, ...pendingMatches, ...finishedMatches];
+  for (const m of matches) {
+    if (m.status === 'FINISHED') jugados.push(m);
+    else if (m.status === 'LIVE') enVivo.push(m);
+    else if (dayKey(m.startTime) === todayKey) enVivo.push(m);
+    else if (m.startTime <= now) jugados.push(m);
+    else proximos.push(m);
+  }
+  enVivo.sort((a, b) => a.startTime - b.startTime);
+  jugados.sort((a, b) => b.startTime - a.startTime);
+  proximos.sort((a, b) => a.startTime - b.startTime);
+
+  const renderCard = (match: Match) => {
+    const pred = (Object.values(predictions) as Prediction[]).find(p => p.matchId === match.id);
+    return (
+      <MatchCard
+        key={match.id}
+        match={match}
+        userPrediction={pred}
+        onSave={(h, a, p) => savePrediction(match.id, h, a, p)}
+      />
+    );
+  };
+
+  const Section = ({ title, items }: { title: string; items: Match[] }) =>
+    items.length === 0 ? null : (
+      <section className="space-y-4">
+        <h2 className="text-sm font-black uppercase tracking-wider text-slate-400">{title}</h2>
+        <div className="flex flex-col gap-4">{items.map(renderCard)}</div>
+      </section>
+    );
+
+  const hasAny = matches.length > 0;
 
   return (
-    <div className="space-y-6 pb-6">
-      <header className="mb-4">
+    <div className="space-y-8 pb-6">
+      <header className="mb-2">
         <div className="flex justify-between items-end gap-3">
           <div>
             <h1 className="text-3xl font-black tracking-tight text-slate-900">Partidos</h1>
@@ -60,24 +100,16 @@ export default function Dashboard() {
         )}
       </header>
 
-      {sortedMatches.length === 0 ? (
+      {!hasAny ? (
         <div className="text-center bg-white rounded-3xl p-8 border border-slate-100">
           <p className="text-slate-500">Aún no hay partidos programados.</p>
         </div>
       ) : (
-        <div className="flex flex-col gap-4">
-          {sortedMatches.map(match => {
-            const pred = (Object.values(predictions) as Prediction[]).find(p => p.matchId === match.id);
-            return (
-              <MatchCard
-                key={match.id}
-                match={match}
-                userPrediction={pred}
-                onSave={(h, a, p) => savePrediction(match.id, h, a, p)}
-              />
-            );
-          })}
-        </div>
+        <>
+          <Section title="⚡ Hoy y en vivo" items={enVivo} />
+          <Section title="✓ Jugados" items={jugados} />
+          <Section title="📅 Próximos" items={proximos} />
+        </>
       )}
     </div>
   );
