@@ -97,7 +97,7 @@ export default function Rules() {
         </section>
         
         <section className="bg-blue-50 p-4 rounded-xl text-sm text-blue-800 font-medium border border-blue-100">
-          Nota: El sistema deshabilitará tus opciones exactamente 5 minutos antes de la hora de inicio (Hora Colombia UTC-5).
+          Puedes <strong>crear o modificar tu predicción las veces que quieras hasta 5 minutos antes</strong> del inicio de cada partido. A partir de ese momento queda bloqueada y ya no se puede cambiar (horario de Colombia, UTC-5).
         </section>
       </div>
     </div>

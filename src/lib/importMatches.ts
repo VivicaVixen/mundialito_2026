@@ -46,7 +46,10 @@ export async function syncMatches(localMatches: Match[]): Promise<number> {
       stage: m.stage,
     };
 
-    if (m.status !== 'PENDING') {
+    if (local && local.status === 'FINISHED') {
+      // Resultado final ya fijado (a mano o por la API): NO se sobrescribe nunca.
+      // Solo el panel de admin puede corregirlo manualmente.
+    } else if (m.status !== 'PENDING') {
       data.status = m.status;
       if (m.homeScore !== undefined) data.homeScore = m.homeScore;
       if (m.awayScore !== undefined) data.awayScore = m.awayScore;
