@@ -8,6 +8,7 @@ import { calculatePoints } from '../lib/scoring';
 import { ADMIN_USERNAME } from '../config';
 import { AdminPredictionEditor } from '../components/AdminPredictionEditor';
 import { TeamFlag } from '../components/TeamFlag';
+import { CollapsibleSection } from '../components/CollapsibleSection';
 
 /** Número que cuenta de su valor anterior al nuevo (conserva hasta 1 decimal). */
 function CountUp({ value }: { value: number }) {
@@ -83,30 +84,97 @@ export default function LaTribuna() {
   const isAdmin = user?.username?.toLowerCase() === ADMIN_USERNAME;
   const selectedUser = users.find(u => u.id === selectedUserId);
 
-  // Orden de los partidos para el usuario seleccionado:
-  //  1) en vivo  2) sin jugar con predicción  3) consolidados con predicción
-  //  4) sin predicción
+  // Al ver a otro usuario, solo se muestran partidos ya cerrados (no espiar
+  // predicciones). El admin ve todo para poder editar.
   const now = Date.now();
-  const predFor = (id: string) => currentPredictions.find(p => p.matchId === id);
   const visibleMatches = matches.filter(m => {
     const isLocked = now >= m.lockTime || m.status !== 'PENDING';
-    // Al ver a otro usuario, solo se muestran partidos ya cerrados (no espiar
-    // predicciones). El admin ve todo para poder editar.
     return isLocked || selectedUserId === user?.id || isAdmin;
   });
-  const rank = (m: Match) => {
-    const hasPred = !!predFor(m.id);
-    if (m.status === 'LIVE') return 0;
-    if (hasPred && m.status !== 'FINISHED') return 1;
-    if (hasPred && m.status === 'FINISHED') return 2;
-    return 3;
+
+  // Tres grupos: en vivo (fijo arriba), sin puntuar (pendientes/cerrados sin
+  // finalizar) y puntuados (finalizados). El partido en vivo se queda arriba
+  // con display permanente hasta que pase a puntuado.
+  const liveMatches: Match[] = [];
+  const sinPuntuar: Match[] = [];
+  const puntuados: Match[] = [];
+  for (const m of visibleMatches) {
+    if (m.status === 'LIVE') liveMatches.push(m);
+    else if (m.status === 'FINISHED') puntuados.push(m);
+    else sinPuntuar.push(m);
+  }
+  liveMatches.sort((a, b) => a.startTime - b.startTime);
+  sinPuntuar.sort((a, b) => a.startTime - b.startTime);
+  puntuados.sort((a, b) => b.startTime - a.startTime); // más recientes primero
+
+  const renderMatchRow = (m: Match) => {
+    const pred = currentPredictions.find(p => p.matchId === m.id);
+    const pointsEarned = pred ? calculatePoints(pred, m) : 0;
+    return (
+      <div key={m.id} className="bg-white rounded-2xl p-4 border border-slate-100 flex flex-col gap-3 relative overflow-hidden">
+        {m.status === 'LIVE' && (
+          <div className="absolute top-0 left-0 w-full h-1 bg-green-500 animate-pulse"></div>
+        )}
+
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col gap-1 flex-1 min-w-0">
+            <span className="text-xs text-slate-400 font-bold uppercase flex gap-2">
+               {m.stage} {m.status === 'LIVE' && <span className="text-green-500 animate-pulse">(EN CURSO)</span>}
+            </span>
+            <span className="text-sm font-semibold flex items-center gap-1 flex-wrap">
+              <TeamFlag team={m.homeTeam} className="w-4 h-[11px]" />
+              {m.homeTeam}
+              <span className="text-slate-400 mx-0.5">vs</span>
+              <TeamFlag team={m.awayTeam} className="w-4 h-[11px]" />
+              {m.awayTeam}
+            </span>
+            {m.status !== 'PENDING' && (
+              <span className="text-xs font-mono bg-slate-100 self-start px-2 py-0.5 rounded-md">Real: {m.homeScore}-{m.awayScore}</span>
+            )}
+          </div>
+
+          <div className="flex flex-col items-end gap-1 shrink-0">
+            {pred ? (
+              <span className="font-mono text-xl font-bold tracking-widest text-[#003893] bg-blue-50 px-3 py-1 rounded-lg">
+                {pred.homeScore}-{pred.awayScore}
+              </span>
+            ) : (
+              <span className="text-sm text-slate-400 italic">Sin predicción</span>
+            )}
+            {m.status !== 'PENDING' && pred && (
+              <span className="text-sm font-black text-[#CE1126]">+{pointsEarned} pts</span>
+            )}
+          </div>
+        </div>
+
+        {isAdmin && selectedUser && (
+          <AdminPredictionEditor
+            userId={selectedUserId}
+            username={selectedUser.username}
+            match={m}
+            prediction={pred}
+          />
+        )}
+      </div>
+    );
   };
-  const orderedUserMatches = [...visibleMatches].sort((a, b) => {
-    const ra = rank(a), rb = rank(b);
-    if (ra !== rb) return ra - rb;
-    if (ra === 2) return b.startTime - a.startTime; // consolidados: más recientes primero
-    return a.startTime - b.startTime;
-  });
+
+  const stagger = (items: Match[]) => (
+    <motion.div
+      className="flex flex-col gap-4"
+      initial="hidden"
+      animate="show"
+      variants={{ show: { transition: { staggerChildren: 0.04 } } }}
+    >
+      {items.map(m => (
+        <motion.div key={m.id} variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}>
+          {renderMatchRow(m)}
+        </motion.div>
+      ))}
+    </motion.div>
+  );
+
+  const hasAnyVisible = liveMatches.length + sinPuntuar.length + puntuados.length > 0;
 
   return (
     <div className="space-y-6">
@@ -123,13 +191,19 @@ export default function LaTribuna() {
           )}
           {leaderboard.map((u, i) => {
             const isMe = u.id === user?.id;
+            const isSelected = u.id === selectedUserId;
             const medal = i < 3 ? ['🥇', '🥈', '🥉'][i] : null;
             return (
-              <motion.div
+              <motion.button
+                type="button"
                 key={u.id}
                 layout
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setSelectedUserId(u.id)}
                 transition={{ type: 'spring', stiffness: 500, damping: 40 }}
-                className={`flex items-center gap-3 px-3 py-2 rounded-2xl ${isMe ? 'bg-[#FCD116]/20 ring-1 ring-[#FCD116]/40' : 'bg-white/5'}`}
+                className={`flex items-center gap-3 px-3 py-2 rounded-2xl text-left transition-colors ${
+                  isSelected ? 'bg-[#FCD116]/25 ring-2 ring-[#FCD116]' : 'bg-white/5 hover:bg-white/10'
+                }`}
               >
                 <span className="w-7 text-center text-lg font-black shrink-0">
                   {medal ?? <span className="text-white/50 text-sm">#{i + 1}</span>}
@@ -138,84 +212,55 @@ export default function LaTribuna() {
                   {u.username}
                   {isMe && <span className="text-[#FCD116] font-extrabold"> (Tú)</span>}
                 </span>
+                {isSelected && (
+                  <span className="text-[10px] uppercase tracking-wider font-black text-[#FCD116] shrink-0">Viendo</span>
+                )}
                 <span className="text-sm font-mono text-white/90 shrink-0">
                   <CountUp value={u.dynamicScore} /> pts
                 </span>
-              </motion.div>
+              </motion.button>
             );
           })}
         </div>
+        <p className="text-center text-xs text-slate-400 -mt-1">
+          Toca a un jugador para ver sus predicciones.
+        </p>
       </header>
 
-      {/* Selector */}
-      <div className="bg-white p-4 rounded-3xl border border-slate-100 flex items-center gap-4 shadow-sm">
-        <label className="font-medium text-slate-600 text-sm shrink-0">Ver a:</label>
-        <select 
-          value={selectedUserId} 
-          onChange={e => setSelectedUserId(e.target.value)}
-          className="bg-slate-50 border-none rounded-xl px-4 py-2 w-full font-medium text-slate-800 outline-none focus:ring-2 focus:ring-[#FCD116]"
-        >
-          {leaderboard.map(u => (
-            <option key={u.id} value={u.id}>{u.username} {u.id === user?.id ? '(Tú)' : ''}</option>
-          ))}
-        </select>
-      </div>
+      {/* Jugador en foco */}
+      {selectedUser && (
+        <div className="bg-white px-4 py-3 rounded-3xl border border-slate-100 shadow-sm text-center">
+          <span className="text-sm text-slate-500">Predicciones de </span>
+          <span className="text-sm font-black text-[#003893]">
+            {selectedUser.username}{selectedUser.id === user?.id ? ' (Tú)' : ''}
+          </span>
+        </div>
+      )}
 
-      {/* Predictions list */}
-      <div className="space-y-4 pb-8">
-        {orderedUserMatches.map(m => {
-          const pred = currentPredictions.find(p => p.matchId === m.id);
-          const pointsEarned = pred ? calculatePoints(pred, m) : 0;
-
-          return (
-            <div key={m.id} className="bg-white rounded-2xl p-4 border border-slate-100 flex flex-col gap-3 relative overflow-hidden">
-              {m.status === 'LIVE' && (
-                <div className="absolute top-0 left-0 w-full h-1 bg-green-500 animate-pulse"></div>
-              )}
-
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex flex-col gap-1 flex-1 min-w-0">
-                  <span className="text-xs text-slate-400 font-bold uppercase flex gap-2">
-                     {m.stage} {m.status === 'LIVE' && <span className="text-green-500 animate-pulse">(EN CURSO)</span>}
-                  </span>
-                  <span className="text-sm font-semibold flex items-center gap-1 flex-wrap">
-                    <TeamFlag team={m.homeTeam} className="w-4 h-[11px]" />
-                    {m.homeTeam}
-                    <span className="text-slate-400 mx-0.5">vs</span>
-                    <TeamFlag team={m.awayTeam} className="w-4 h-[11px]" />
-                    {m.awayTeam}
-                  </span>
-                  {m.status !== 'PENDING' && (
-                    <span className="text-xs font-mono bg-slate-100 self-start px-2 py-0.5 rounded-md">Real: {m.homeScore}-{m.awayScore}</span>
-                  )}
-                </div>
-
-                <div className="flex flex-col items-end gap-1 shrink-0">
-                  {pred ? (
-                    <span className="font-mono text-xl font-bold tracking-widest text-[#003893] bg-blue-50 px-3 py-1 rounded-lg">
-                      {pred.homeScore}-{pred.awayScore}
-                    </span>
-                  ) : (
-                    <span className="text-sm text-slate-400 italic">Sin predicción</span>
-                  )}
-                  {m.status !== 'PENDING' && pred && (
-                    <span className="text-sm font-black text-[#CE1126]">+{pointsEarned} pts</span>
-                  )}
-                </div>
-              </div>
-
-              {isAdmin && selectedUser && (
-                <AdminPredictionEditor
-                  userId={selectedUserId}
-                  username={selectedUser.username}
-                  match={m}
-                  prediction={pred}
-                />
-              )}
-            </div>
-          );
-        })}
-      </div>
+      {/* Predicciones agrupadas */}
+      {!hasAnyVisible ? (
+        <div className="text-center bg-white rounded-3xl p-8 border border-slate-100">
+          <p className="text-slate-500">No hay partidos para mostrar todavía.</p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-4 pb-8">
+          {liveMatches.length > 0 && (
+            <CollapsibleSection title="🔴 En vivo" count={liveMatches.length} pinned>
+              {stagger(liveMatches)}
+            </CollapsibleSection>
+          )}
+          {sinPuntuar.length > 0 && (
+            <CollapsibleSection title="⏳ Sin puntuar" count={sinPuntuar.length}>
+              {stagger(sinPuntuar)}
+            </CollapsibleSection>
+          )}
+          {puntuados.length > 0 && (
+            <CollapsibleSection title="✓ Puntuados" count={puntuados.length}>
+              {stagger(puntuados)}
+            </CollapsibleSection>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { useAuth } from '../lib/auth';
 import { syncMatches } from '../lib/importMatches';
 import { ADMIN_USERNAME } from '../config';
 import { Match } from '../types';
+import { CollapsibleSection } from '../components/CollapsibleSection';
 
 const COLOMBIA_TZ = 'America/Bogota';
 const dayKey = (ms: number) => formatInTimeZone(ms, COLOMBIA_TZ, 'yyyy-MM-dd');
@@ -71,12 +72,7 @@ export default function Dashboard() {
 
   const Section = ({ title, items }: { title: string; items: Match[] }) =>
     items.length === 0 ? null : (
-      <section className="space-y-4">
-        <div className="flex justify-center">
-          <h2 className="text-base md:text-lg font-black uppercase tracking-wider text-[#003893] bg-blue-50 border border-blue-100 px-5 py-2 rounded-full shadow-sm">
-            {title}
-          </h2>
-        </div>
+      <CollapsibleSection title={title} count={items.length}>
         <motion.div
           className="flex flex-col gap-4"
           initial="hidden"
@@ -85,7 +81,7 @@ export default function Dashboard() {
         >
           {items.map(renderCard)}
         </motion.div>
-      </section>
+      </CollapsibleSection>
     );
 
   const hasAny = matches.length > 0;
@@ -118,11 +114,11 @@ export default function Dashboard() {
           <p className="text-slate-500">Aún no hay partidos programados.</p>
         </div>
       ) : (
-        <>
+        <div className="flex flex-col gap-4">
           <Section title="⚡ Hoy y en vivo" items={enVivo} />
           <Section title="✓ Jugados" items={jugados} />
           <Section title="📅 Próximos" items={proximos} />
-        </>
+        </div>
       )}
     </div>
   );
