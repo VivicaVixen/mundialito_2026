@@ -6,3 +6,8 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Clave de servicio de Firebase — NUNCA subir
+*firebase-adminsdk*.json
+service-account*.json
+serviceAccount*.json
