@@ -4,6 +4,46 @@ import { db } from './firebase';
 import { Match, Prediction } from '../types';
 import { useAuth } from './auth';
 
+/**
+ * Guarda/edita la predicción de CUALQUIER usuario (solo admin, lo imponen las
+ * reglas). Usa el id correcto `userId_matchId` y no toca createdAt al editar.
+ */
+export async function adminSavePrediction(params: {
+  userId: string;
+  username: string;
+  matchId: string;
+  homeScore: number;
+  awayScore: number;
+  hasPenalties: boolean;
+  penaltyHome?: number;
+  penaltyAway?: number;
+  exists: boolean;
+}): Promise<void> {
+  const { userId, username, matchId, homeScore, awayScore, hasPenalties, penaltyHome, penaltyAway, exists } = params;
+  const ref = doc(db, 'predictions', `${userId}_${matchId}`);
+  const penaltyFields =
+    hasPenalties && penaltyHome !== undefined && penaltyAway !== undefined
+      ? { penaltyHome, penaltyAway }
+      : {};
+
+  if (exists) {
+    await updateDoc(ref, { homeScore, awayScore, hasPenalties, ...penaltyFields, updatedAt: serverTimestamp() });
+  } else {
+    await setDoc(ref, {
+      userId,
+      username,
+      matchId,
+      homeScore,
+      awayScore,
+      hasPenalties,
+      ...penaltyFields,
+      points: 0,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  }
+}
+
 export function useMatchesAndPredictions() {
   const { user } = useAuth();
   const [matches, setMatches] = useState<Match[]>([]);

@@ -4,6 +4,8 @@ import { db } from '../lib/firebase';
 import { Match, Prediction, User } from '../types';
 import { useAuth } from '../lib/auth';
 import { calculatePoints } from '../lib/scoring';
+import { ADMIN_USERNAME } from '../config';
+import { AdminPredictionEditor } from '../components/AdminPredictionEditor';
 
 export default function LaTribuna() {
   const { user } = useAuth();
@@ -50,6 +52,9 @@ export default function LaTribuna() {
     return allPredictions.filter(p => p.userId === selectedUserId);
   }, [allPredictions, selectedUserId]);
 
+  const isAdmin = user?.username?.toLowerCase() === ADMIN_USERNAME;
+  const selectedUser = users.find(u => u.id === selectedUserId);
+
   // Orden de los partidos para el usuario seleccionado:
   //  1) en vivo  2) sin jugar con predicción  3) consolidados con predicción
   //  4) sin predicción
@@ -57,8 +62,9 @@ export default function LaTribuna() {
   const predFor = (id: string) => currentPredictions.find(p => p.matchId === id);
   const visibleMatches = matches.filter(m => {
     const isLocked = now >= m.lockTime || m.status !== 'PENDING';
-    // Al ver a otro usuario, solo se muestran partidos ya cerrados (no espiar predicciones).
-    return isLocked || selectedUserId === user?.id;
+    // Al ver a otro usuario, solo se muestran partidos ya cerrados (no espiar
+    // predicciones). El admin ve todo para poder editar.
+    return isLocked || selectedUserId === user?.id || isAdmin;
   });
   const rank = (m: Match) => {
     const hasPred = !!predFor(m.id);
@@ -117,33 +123,44 @@ export default function LaTribuna() {
           const pointsEarned = pred ? calculatePoints(pred, m) : 0;
 
           return (
-            <div key={m.id} className="bg-white rounded-2xl p-4 border border-slate-100 flex items-center justify-between relative overflow-hidden">
+            <div key={m.id} className="bg-white rounded-2xl p-4 border border-slate-100 flex flex-col gap-3 relative overflow-hidden">
               {m.status === 'LIVE' && (
                 <div className="absolute top-0 left-0 w-full h-1 bg-green-500 animate-pulse"></div>
               )}
-              
-              <div className="flex flex-col gap-1 w-1/3">
-                <span className="text-xs text-slate-400 font-bold uppercase flex gap-2">
-                   {m.stage} {m.status === 'LIVE' && <span className="text-green-500 animate-pulse">(EN CURSO)</span>}
-                </span>
-                <span className="text-sm font-semibold truncate">{m.homeTeam} vs {m.awayTeam}</span>
-                {m.status !== 'PENDING' && (
-                  <span className="text-xs font-mono bg-slate-100 self-start px-2 py-0.5 rounded-md">Real: {m.homeScore}-{m.awayScore}</span>
-                )}
-              </div>
-              
-              <div className="flex flex-col items-end gap-1">
-                {pred ? (
-                  <span className="font-mono text-xl font-bold tracking-widest text-[#003893] bg-blue-50 px-3 py-1 rounded-lg">
-                    {pred.homeScore}-{pred.awayScore}
+
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex flex-col gap-1 flex-1 min-w-0">
+                  <span className="text-xs text-slate-400 font-bold uppercase flex gap-2">
+                     {m.stage} {m.status === 'LIVE' && <span className="text-green-500 animate-pulse">(EN CURSO)</span>}
                   </span>
-                ) : (
-                  <span className="text-sm text-slate-400 italic">Sin predicción</span>
-                )}
-                {m.status !== 'PENDING' && pred && (
-                  <span className="text-sm font-black text-[#CE1126]">+{pointsEarned} pts</span>
-                )}
+                  <span className="text-sm font-semibold truncate">{m.homeTeam} vs {m.awayTeam}</span>
+                  {m.status !== 'PENDING' && (
+                    <span className="text-xs font-mono bg-slate-100 self-start px-2 py-0.5 rounded-md">Real: {m.homeScore}-{m.awayScore}</span>
+                  )}
+                </div>
+
+                <div className="flex flex-col items-end gap-1 shrink-0">
+                  {pred ? (
+                    <span className="font-mono text-xl font-bold tracking-widest text-[#003893] bg-blue-50 px-3 py-1 rounded-lg">
+                      {pred.homeScore}-{pred.awayScore}
+                    </span>
+                  ) : (
+                    <span className="text-sm text-slate-400 italic">Sin predicción</span>
+                  )}
+                  {m.status !== 'PENDING' && pred && (
+                    <span className="text-sm font-black text-[#CE1126]">+{pointsEarned} pts</span>
+                  )}
+                </div>
               </div>
+
+              {isAdmin && selectedUser && (
+                <AdminPredictionEditor
+                  userId={selectedUserId}
+                  username={selectedUser.username}
+                  match={m}
+                  prediction={pred}
+                />
+              )}
             </div>
           );
         })}

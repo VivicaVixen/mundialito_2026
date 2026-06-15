@@ -70,7 +70,7 @@ service cloud.firestore {
 
     function isValidPrediction(data) {
       return data.keys().hasAll(['userId', 'username', 'matchId', 'homeScore', 'awayScore', 'hasPenalties', 'createdAt', 'updatedAt', 'points']) &&
-             data.userId is string && data.userId == request.auth.uid &&
+             data.userId is string && data.userId.size() <= 128 &&
              data.username is string && data.username.size() > 0 && data.username.size() <= 30 &&
              data.matchId is string && data.matchId.size() > 0 && data.matchId.size() <= 128 &&
              data.homeScore is number && data.homeScore >= 0 && data.homeScore <= 50 &&
@@ -86,14 +86,24 @@ service cloud.firestore {
     match /predictions/{predictionId} {
       allow read: if true;
       allow create: if isSignedIn() &&
-                    // Only exact mapping of composite ID
-                    predictionId == request.auth.uid + '_' + incoming().matchId &&
                     isValidPrediction(incoming()) &&
                     incoming().points == 0 &&
                     incoming().createdAt == request.time &&
                     incoming().updatedAt == request.time &&
-                    request.time.toMillis() < get(/databases/$(database)/documents/matches/$(incoming().matchId)).data.lockTime;
-      
+                    (
+                      // El usuario crea su propia predicción antes del cierre
+                      (
+                        predictionId == request.auth.uid + '_' + incoming().matchId &&
+                        incoming().userId == request.auth.uid &&
+                        request.time.toMillis() < get(/databases/$(database)/documents/matches/$(incoming().matchId)).data.lockTime
+                      ) ||
+                      // El admin puede crear la predicción de cualquiera (sin límite de cierre)
+                      (
+                        isAdmin() &&
+                        predictionId == incoming().userId + '_' + incoming().matchId
+                      )
+                    );
+
       allow update: if isSignedIn() &&
                     isValidPrediction(incoming()) &&
                     incoming().createdAt == existing().createdAt &&
@@ -101,19 +111,13 @@ service cloud.firestore {
                     incoming().matchId == existing().matchId &&
                     incoming().updatedAt == request.time &&
                     (
-                      // Admins can update points
+                      // El admin puede editar la predicción de cualquiera (sin límite de cierre)
                       isAdmin() ||
-                      // Users can update their prediction before lock time
+                      // El usuario edita su propia predicción antes del cierre
                       (
                         request.auth.uid == existing().userId &&
                         request.time.toMillis() < get(/databases/$(database)/documents/matches/$(existing().matchId)).data.lockTime &&
                         incoming().diff(existing()).affectedKeys().hasOnly(['homeScore', 'awayScore', 'hasPenalties', 'penaltyHome', 'penaltyAway', 'updatedAt'])
-                      ) ||
-                      // Let's also allow a client to update points after a match to simulate Cron Live Scoring, since this is simple
-                      // Actually, let's limit it to only the admin email for safety, but user isn't admin...
-                      // For a simple 5-player game, giving normal users the ability to update points in predictions isn't awful, but we can do it securely.
-                      (
-                        incoming().diff(existing()).affectedKeys().hasOnly(['points', 'updatedAt'])
                       )
                     );
     }
