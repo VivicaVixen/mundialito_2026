@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { motion } from 'motion/react';
 import { formatInTimeZone } from 'date-fns-tz';
 import { useMatchesAndPredictions } from '../lib/db';
 import { MatchCard } from '../components/MatchCard';
@@ -76,7 +77,14 @@ export default function Dashboard() {
             {title}
           </h2>
         </div>
-        <div className="flex flex-col gap-4">{items.map(renderCard)}</div>
+        <motion.div
+          className="flex flex-col gap-4"
+          initial="hidden"
+          animate="show"
+          variants={{ show: { transition: { staggerChildren: 0.05 } } }}
+        >
+          {items.map(renderCard)}
+        </motion.div>
       </section>
     );
 

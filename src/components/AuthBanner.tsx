@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion } from 'motion/react';
 import { useAuth } from '../lib/auth';
 
 export function AuthBanner() {
@@ -18,7 +19,7 @@ export function AuthBanner() {
               <span className="text-xs font-semibold text-[#CE1126] leading-tight">Vamos Colombia 🇨🇴</span>
             </div>
         </div>
-        <button onClick={logout} className="text-xs text-slate-500 font-bold px-3 py-2 bg-slate-100 rounded-lg active:bg-slate-200 transition-colors">Salir</button>
+        <motion.button whileTap={{ scale: 0.95 }} onClick={logout} className="text-xs text-slate-500 font-bold px-3 py-2 bg-slate-100 rounded-lg active:bg-slate-200 transition-colors">Salir</motion.button>
       </div>
     );
   }
@@ -62,13 +63,14 @@ export function AuthBanner() {
             onChange={e=>setPin(e.target.value.replace(/[^0-9]/g, '').slice(0, 4))} 
             className="w-20 shrink-0 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-center tracking-widest outline-none focus:ring-2 focus:ring-[#003893]" 
           />
-          <button 
-            type="submit" 
-            disabled={loading} 
-            className="shrink-0 bg-[#003893] text-[#FCD116] font-bold text-sm rounded-lg px-4 py-2 active:scale-95 transition-all"
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            type="submit"
+            disabled={loading}
+            className="shrink-0 bg-[#003893] text-[#FCD116] font-bold text-sm rounded-lg px-4 py-2 transition-colors"
           >
             Entrar
-          </button>
+          </motion.button>
         </form>
         {error && <p className="text-xs font-medium text-red-500 mt-2 px-1">{error}</p>}
     </div>

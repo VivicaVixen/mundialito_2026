@@ -1,1 +1,20 @@
 @import "tailwindcss";
+
+html {
+  /* Quita el destello gris al tocar en móvil (mejor con las animaciones de tap) */
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Oculta la barra de scroll en carruseles horizontales */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

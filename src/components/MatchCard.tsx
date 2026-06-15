@@ -1,12 +1,19 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'motion/react';
 import { Match, Prediction, MatchStatus } from '../types';
 import { formatInTimeZone } from 'date-fns-tz';
 import { calculatePoints } from '../lib/scoring';
 import { useAuth } from '../lib/auth';
 import { ADMIN_USERNAME } from '../config';
 import { saveMatchResult } from '../lib/importMatches';
+import { TeamFlag } from './TeamFlag';
 
 const COLOMBIA_TZ = 'America/Bogota';
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 10 },
+  show: { opacity: 1, y: 0 },
+};
 
 interface MatchCardProps {
   match: Match;
@@ -110,7 +117,10 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, userPrediction, onS
   const currentPoints = userPrediction ? calculatePoints(userPrediction, match) : 0;
 
   return (
-    <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 flex flex-col gap-4 relative overflow-hidden transition-all">
+    <motion.div
+      variants={cardVariants}
+      className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 flex flex-col gap-4 relative overflow-hidden"
+    >
       {/* Decorative top bar */}
       <div className="absolute top-0 left-0 w-full h-1 bg-slate-100">
         {match.status === 'LIVE' && <div className="h-full bg-green-500 animate-pulse"></div>}
@@ -122,8 +132,11 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, userPrediction, onS
       </div>
 
       <div className="flex items-center justify-between text-lg font-bold text-slate-800">
-        <div className="flex-1 text-right">{match.homeTeam}</div>
-        
+        <div className="flex-1 flex items-center justify-end gap-2 min-w-0">
+          <span className="truncate text-right">{match.homeTeam}</span>
+          <TeamFlag team={match.homeTeam} />
+        </div>
+
         <div className="mx-4 flex items-center gap-2">
           {(!isLocked || (isLocked && match.status === 'PENDING')) ? (
             <>
@@ -152,7 +165,10 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, userPrediction, onS
           )}
         </div>
 
-        <div className="flex-1 text-left">{match.awayTeam}</div>
+        <div className="flex-1 flex items-center gap-2 min-w-0">
+          <TeamFlag team={match.awayTeam} />
+          <span className="truncate text-left">{match.awayTeam}</span>
+        </div>
       </div>
 
       {needsPenaltiesCheckbox && (!isLocked) && (user) && (
@@ -194,13 +210,14 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, userPrediction, onS
             Inicia sesión arriba para predecir
           </button>
         ) : (
-          <button
+          <motion.button
+            whileTap={{ scale: 0.97 }}
             onClick={handleSave}
             disabled={isSaving || homeScore === '' || awayScore === '' || unchanged}
-            className="mt-2 w-full bg-[#003893] text-white font-medium py-3 rounded-xl disabled:bg-slate-100 disabled:text-slate-400 transition-all active:scale-[0.98]"
+            className="mt-2 w-full bg-[#003893] text-white font-medium py-3 rounded-xl disabled:bg-slate-100 disabled:text-slate-400 transition-colors"
           >
             {isSaving ? 'Guardando...' : (userPrediction ? 'Actualizar Predicción' : 'Guardar Predicción')}
-          </button>
+          </motion.button>
         )
       )}
 
@@ -285,6 +302,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, userPrediction, onS
           )}
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

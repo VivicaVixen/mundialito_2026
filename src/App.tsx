@@ -1,15 +1,18 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './lib/auth';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'motion/react';
+import { AuthProvider } from './lib/auth';
+import { useAutoReload } from './lib/useAutoReload';
 import Dashboard from './pages/Dashboard';
 import LaTribuna from './pages/LaTribuna';
 import Rules from './pages/Rules';
 import Navigation from './components/Navigation';
 import { AuthBanner } from './components/AuthBanner';
 
-function Layout({ children }: { children: React.ReactNode }) {
+function Shell() {
+  const location = useLocation();
+
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 text-slate-900">
       <div className="sticky top-0 z-50 flex flex-col shadow-sm">
         {/* Banner de Premio */}
         <div className="bg-[#FCD116] text-[#003893] text-center py-1.5 border-b border-[#FCD116]/80 flex flex-col items-center leading-tight">
@@ -25,34 +28,34 @@ function Layout({ children }: { children: React.ReactNode }) {
       </div>
 
       <main className="p-4 md:p-8 max-w-2xl mx-auto pb-12">
-        {children}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
+          >
+            <Routes location={location}>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/tribuna" element={<LaTribuna />} />
+              <Route path="/reglas" element={<Rules />} />
+              <Route path="*" element={<Navigate to="/" />} />
+            </Routes>
+          </motion.div>
+        </AnimatePresence>
       </main>
     </div>
   );
 }
 
 export default function App() {
+  useAutoReload();
+
   return (
     <AuthProvider>
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={
-            <Layout>
-              <Dashboard />
-            </Layout>
-          } />
-          <Route path="/tribuna" element={
-            <Layout>
-              <LaTribuna />
-            </Layout>
-          } />
-          <Route path="/reglas" element={
-            <Layout>
-              <Rules />
-            </Layout>
-          } />
-          <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
+        <Shell />
       </BrowserRouter>
     </AuthProvider>
   );

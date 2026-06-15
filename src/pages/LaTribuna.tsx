@@ -1,4 +1,5 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
+import { motion } from 'motion/react';
 import { collection, query, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Match, Prediction, User } from '../types';
@@ -6,6 +7,33 @@ import { useAuth } from '../lib/auth';
 import { calculatePoints } from '../lib/scoring';
 import { ADMIN_USERNAME } from '../config';
 import { AdminPredictionEditor } from '../components/AdminPredictionEditor';
+import { TeamFlag } from '../components/TeamFlag';
+
+/** Número que cuenta de su valor anterior al nuevo (conserva hasta 1 decimal). */
+function CountUp({ value }: { value: number }) {
+  const [display, setDisplay] = useState(value);
+  const fromRef = useRef(value);
+  useEffect(() => {
+    const from = fromRef.current;
+    if (from === value) {
+      setDisplay(value);
+      return;
+    }
+    const start = performance.now();
+    const duration = 500;
+    let raf = 0;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setDisplay(Math.round((from + (value - from) * eased) * 10) / 10);
+      if (t < 1) raf = requestAnimationFrame(tick);
+      else fromRef.current = value;
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [value]);
+  return <>{display}</>;
+}
 
 export default function LaTribuna() {
   const { user } = useAuth();
@@ -88,17 +116,34 @@ export default function LaTribuna() {
           <p className="text-slate-500 mt-1">Ranking global y predicciones en vivo.</p>
         </div>
 
-        {/* TOP 3 Ranking */}
-        <div className="bg-slate-900 text-white p-4 rounded-3xl flex gap-4 overflow-x-auto snap-x hide-scrollbar">
-          {leaderboard.map((u, i) => (
-            <div key={u.id} className="snap-center shrink-0 flex items-center gap-3 bg-white/10 px-4 py-3 rounded-2xl min-w-[140px]">
-              <span className="text-2xl font-black text-[#FCD116]">#{i+1}</span>
-              <div className="flex flex-col">
-                <span className="font-bold text-sm truncate max-w-[80px]">{u.username}</span>
-                <span className="text-xs text-white/70">{u.dynamicScore} pts</span>
-              </div>
-            </div>
-          ))}
+        {/* Ranking */}
+        <div className="bg-slate-900 text-white p-3 rounded-3xl flex flex-col gap-2">
+          {leaderboard.length === 0 && (
+            <span className="text-center text-white/60 text-sm py-2">Aún no hay participantes.</span>
+          )}
+          {leaderboard.map((u, i) => {
+            const isMe = u.id === user?.id;
+            const medal = i < 3 ? ['🥇', '🥈', '🥉'][i] : null;
+            return (
+              <motion.div
+                key={u.id}
+                layout
+                transition={{ type: 'spring', stiffness: 500, damping: 40 }}
+                className={`flex items-center gap-3 px-3 py-2 rounded-2xl ${isMe ? 'bg-[#FCD116]/20 ring-1 ring-[#FCD116]/40' : 'bg-white/5'}`}
+              >
+                <span className="w-7 text-center text-lg font-black shrink-0">
+                  {medal ?? <span className="text-white/50 text-sm">#{i + 1}</span>}
+                </span>
+                <span className="flex-1 font-bold text-sm truncate">
+                  {u.username}
+                  {isMe && <span className="text-[#FCD116] font-extrabold"> (Tú)</span>}
+                </span>
+                <span className="text-sm font-mono text-white/90 shrink-0">
+                  <CountUp value={u.dynamicScore} /> pts
+                </span>
+              </motion.div>
+            );
+          })}
         </div>
       </header>
 
@@ -133,7 +178,13 @@ export default function LaTribuna() {
                   <span className="text-xs text-slate-400 font-bold uppercase flex gap-2">
                      {m.stage} {m.status === 'LIVE' && <span className="text-green-500 animate-pulse">(EN CURSO)</span>}
                   </span>
-                  <span className="text-sm font-semibold truncate">{m.homeTeam} vs {m.awayTeam}</span>
+                  <span className="text-sm font-semibold flex items-center gap-1 flex-wrap">
+                    <TeamFlag team={m.homeTeam} className="w-4 h-[11px]" />
+                    {m.homeTeam}
+                    <span className="text-slate-400 mx-0.5">vs</span>
+                    <TeamFlag team={m.awayTeam} className="w-4 h-[11px]" />
+                    {m.awayTeam}
+                  </span>
                   {m.status !== 'PENDING' && (
                     <span className="text-xs font-mono bg-slate-100 self-start px-2 py-0.5 rounded-md">Real: {m.homeScore}-{m.awayScore}</span>
                   )}

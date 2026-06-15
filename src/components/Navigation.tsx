@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Home, Users, BookOpen } from 'lucide-react';
+import { motion } from 'motion/react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -26,14 +27,19 @@ export default function Navigation() {
               key={to}
               to={to}
               className={cn(
-                "flex items-center gap-2 px-3 py-3 border-b-2 transition-colors text-sm font-medium",
-                isActive
-                  ? "text-[#ce1126] border-[#ce1126]"
-                  : "text-slate-500 border-transparent hover:text-slate-900"
+                "relative flex items-center gap-2 px-3 py-3 transition-colors text-sm font-medium active:scale-95",
+                isActive ? "text-[#ce1126]" : "text-slate-500 hover:text-slate-900"
               )}
             >
               <Icon size={20} />
               <span>{label}</span>
+              {isActive && (
+                <motion.div
+                  layoutId="navUnderline"
+                  className="absolute left-2 right-2 -bottom-px h-0.5 bg-[#ce1126] rounded-full"
+                  transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                />
+              )}
             </Link>
           );
         })}
