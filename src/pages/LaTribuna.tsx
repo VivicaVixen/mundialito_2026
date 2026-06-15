@@ -50,6 +50,30 @@ export default function LaTribuna() {
     return allPredictions.filter(p => p.userId === selectedUserId);
   }, [allPredictions, selectedUserId]);
 
+  // Orden de los partidos para el usuario seleccionado:
+  //  1) en vivo  2) sin jugar con predicción  3) consolidados con predicción
+  //  4) sin predicción
+  const now = Date.now();
+  const predFor = (id: string) => currentPredictions.find(p => p.matchId === id);
+  const visibleMatches = matches.filter(m => {
+    const isLocked = now >= m.lockTime || m.status !== 'PENDING';
+    // Al ver a otro usuario, solo se muestran partidos ya cerrados (no espiar predicciones).
+    return isLocked || selectedUserId === user?.id;
+  });
+  const rank = (m: Match) => {
+    const hasPred = !!predFor(m.id);
+    if (m.status === 'LIVE') return 0;
+    if (hasPred && m.status !== 'FINISHED') return 1;
+    if (hasPred && m.status === 'FINISHED') return 2;
+    return 3;
+  };
+  const orderedUserMatches = [...visibleMatches].sort((a, b) => {
+    const ra = rank(a), rb = rank(b);
+    if (ra !== rb) return ra - rb;
+    if (ra === 2) return b.startTime - a.startTime; // consolidados: más recientes primero
+    return a.startTime - b.startTime;
+  });
+
   return (
     <div className="space-y-6">
       <header className="mb-8 flex flex-col gap-4">
@@ -88,13 +112,10 @@ export default function LaTribuna() {
 
       {/* Predictions list */}
       <div className="space-y-4 pb-8">
-        {matches.map(m => {
-          const isLocked = Date.now() >= m.lockTime || m.status !== 'PENDING';
-          if (!isLocked && selectedUserId !== user?.id) return null;
-
+        {orderedUserMatches.map(m => {
           const pred = currentPredictions.find(p => p.matchId === m.id);
           const pointsEarned = pred ? calculatePoints(pred, m) : 0;
-          
+
           return (
             <div key={m.id} className="bg-white rounded-2xl p-4 border border-slate-100 flex items-center justify-between relative overflow-hidden">
               {m.status === 'LIVE' && (

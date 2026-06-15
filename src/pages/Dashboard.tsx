@@ -71,7 +71,11 @@ export default function Dashboard() {
   const Section = ({ title, items }: { title: string; items: Match[] }) =>
     items.length === 0 ? null : (
       <section className="space-y-4">
-        <h2 className="text-sm font-black uppercase tracking-wider text-slate-400">{title}</h2>
+        <div className="flex justify-center">
+          <h2 className="text-base md:text-lg font-black uppercase tracking-wider text-[#003893] bg-blue-50 border border-blue-100 px-5 py-2 rounded-full shadow-sm">
+            {title}
+          </h2>
+        </div>
         <div className="flex flex-col gap-4">{items.map(renderCard)}</div>
       </section>
     );
