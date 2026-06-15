@@ -10,8 +10,10 @@ service cloud.firestore {
     function existing() { return resource.data; }
     function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
     function isAdmin() {
-      // Allow specific email as admin, or allow anyone for the sake of setting up matches in UI
-      return isSignedIn() && request.auth.token.email == 'melethestel@gmail.com';
+      // El admin es el usuario que importa/actualiza los partidos desde la app.
+      // Se identifica por su correo ficticio (usuario + PIN); debe coincidir con
+      // ADMIN_USERNAME en src/config.ts.
+      return isSignedIn() && request.auth.token.email == 'vivica@quiniela.app';
     }
 
     function isValidUser(data) {

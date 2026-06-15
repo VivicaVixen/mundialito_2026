@@ -6,16 +6,19 @@ desde el celular.
 
 ## Stack
 
-- **Frontend:** React 19 + Vite + Tailwind CSS (SPA estática).
-- **Backend:** Firebase Auth (usuario + PIN) y Cloud Firestore.
-- **Sync de partidos:** función serverless en `api/cron.ts` (Vercel Cron) que
-  importa el calendario y resultados del Mundial 2026 desde una fuente pública
-  de GitHub y los guarda en Firestore con el Admin SDK.
+- **Frontend:** React 19 + Vite + Tailwind CSS (SPA estática, sin backend).
+- **Datos:** Firebase Auth (usuario + PIN) y Cloud Firestore.
+- **Partidos:** se importan manualmente desde la app con el botón
+  **"Actualizar partidos"** (visible solo para el usuario admin). Descarga el
+  calendario y resultados del Mundial 2026 desde una fuente pública de GitHub y
+  los escribe en Firestore. Las reglas de seguridad solo permiten esa escritura
+  al admin definido en `src/config.ts`.
 
 ## Estructura
 
 - `src/` — app de React (páginas: Partidos, La Tribuna, Reglas).
-- `api/cron.ts` — sincronización de partidos (Vercel Cron / endpoint manual).
+- `src/lib/importMatches.ts` — importación de partidos (admin).
+- `src/config.ts` — define el usuario admin (`ADMIN_USERNAME`).
 - `firestore.rules` — reglas de seguridad de Firestore.
 - `firebase-applet-config.json` — config pública del proyecto Firebase web.
 
@@ -28,24 +31,16 @@ npm install
 npm run dev      # http://localhost:5173
 ```
 
-> El sync de partidos (`/api/cron`) solo corre en Vercel; en local la lista de
-> partidos se llena una vez que el cron se ejecuta en el entorno desplegado.
-
 ## Variables de entorno
 
-Ver [.env.example](.env.example). Se configuran en Vercel:
-
-| Variable | Para qué |
-| --- | --- |
-| `FIREBASE_PROJECT_ID` | Cuenta de servicio (Admin SDK) usada por el cron |
-| `FIREBASE_CLIENT_EMAIL` | Cuenta de servicio (Admin SDK) |
-| `FIREBASE_PRIVATE_KEY` | Cuenta de servicio (Admin SDK) |
-| `CRON_SECRET` | Protege el endpoint `/api/cron` (recomendado) |
+Ninguna. Ver [.env.example](.env.example).
 
 ## Despliegue
 
 Push a GitHub → importar el repo en Vercel (framework Vite, ya configurado en
-`vercel.json`) → definir las variables de entorno → deploy. Las reglas de
-`firestore.rules` deben estar publicadas en la base de datos de Firestore del
-proyecto, y el proveedor **Correo electrónico/contraseña** debe estar activado
-en Firebase Authentication.
+`vercel.json`) → Deploy. No hay variables de entorno que configurar.
+
+Requisitos en Firebase: tener activado el proveedor **Correo electrónico/
+contraseña** en Authentication, la base de datos Firestore creada, y las reglas
+de `firestore.rules` publicadas. Para cambiar el admin, edita `ADMIN_USERNAME`
+en `src/config.ts` y el correo en `firestore.rules`.
