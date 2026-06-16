@@ -24,7 +24,9 @@ Formato de respuesta, SIEMPRE con estos dos encabezados en negrita y en este ord
 **🌐 Según la web:**
 (hallazgos concretos y actuales de tu búsqueda web, relevantes a la pregunta. Aporta siempre algo útil del mundo real.)
 
-Sé conciso: máximo ~6 líneas por sección. Usa viñetas solo si ayudan. No inventes resultados, predicciones ni datos: si algo no está en el contexto y no lo hallaste en la web, dilo.`;
+Sé conciso: máximo ~6 líneas por sección. Usa viñetas solo si ayudan. No inventes resultados, predicciones ni datos: si algo no está en el contexto y no lo hallaste en la web, dilo.
+
+IMPORTANTÍSIMO: No muestres tu razonamiento, ni planes, ni bloques de código, ni texto tipo "tool_code", "thought" o "Plan". Responde directamente y empieza SIEMPRE por el encabezado "**🎯 Desde la quiniela:**". Nada antes de eso.`;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -55,11 +57,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       config: {
         systemInstruction: SYSTEM_PROMPT,
         temperature: 0.8,
+        // gemini-2.5-flash es un modelo "thinking": desactivamos el pensamiento
+        // para que no filtre razonamiento / tool_code en la respuesta.
+        thinkingConfig: { thinkingBudget: 0, includeThoughts: false },
         tools: [{ googleSearch: {} }],
       },
     });
 
-    const answer = result.text?.trim();
+    const answer = sanitize(result.text || '');
     if (!answer) {
       return res.status(502).json({ error: 'La IA no devolvió respuesta. Intenta de nuevo.' });
     }
@@ -89,4 +94,21 @@ function safeParse(s: string): Record<string, unknown> {
   } catch {
     return {};
   }
+}
+
+// Red de seguridad: si el modelo filtra razonamiento (tool_code, thought, Plan…)
+// antes de la respuesta, recortamos todo hasta el primer encabezado real.
+function sanitize(text: string): string {
+  const t = text.trim();
+  const markers = ['🎯', 'Desde la quiniela'];
+  let idx = -1;
+  for (const m of markers) {
+    const i = t.indexOf(m);
+    if (i !== -1 && (idx === -1 || i < idx)) idx = i;
+  }
+  if (idx > 0) {
+    const lineStart = t.lastIndexOf('\n', idx);
+    return t.slice(lineStart + 1).trim();
+  }
+  return t;
 }
