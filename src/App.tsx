@@ -8,19 +8,25 @@ import Rules from './pages/Rules';
 import AskAI from './pages/AskAI';
 import Navigation from './components/Navigation';
 import { AuthBanner } from './components/AuthBanner';
+import { ChangelogModal } from './components/ChangelogModal';
+import { PRIZES } from './config';
 
 function Shell() {
   const location = useLocation();
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 text-slate-900">
+      <ChangelogModal />
       <div className="sticky top-0 z-50 flex flex-col shadow-sm">
-        {/* Banner de Premio */}
+        {/* Banner de Premio (podio) */}
         <div className="bg-[#FCD116] text-[#003893] text-center py-1.5 border-b border-[#FCD116]/80 flex flex-col items-center leading-tight">
-          <div className="flex items-center justify-center gap-2 font-bold text-sm tracking-wide">
-            <span className="text-xl">🏆</span>
-            <span>PREMIO: 100.000 COP</span>
-            <span className="text-xl">🏆</span>
+          <div className="flex items-center justify-center gap-2 font-bold text-[11px] sm:text-sm tracking-wide whitespace-nowrap">
+            <span>🥇 {PRIZES.first}</span>
+            <span className="opacity-50">·</span>
+            <span>🥈 {PRIZES.second}</span>
+            <span className="opacity-50">·</span>
+            <span>🥉 {PRIZES.third}</span>
+            <span className="font-semibold">COP</span>
           </div>
           <span className="text-[10px] font-semibold tracking-wide opacity-80">Inscripción gratis</span>
         </div>

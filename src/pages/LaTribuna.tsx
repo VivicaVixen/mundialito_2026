@@ -5,7 +5,7 @@ import { db } from '../lib/firebase';
 import { Match, Prediction, User } from '../types';
 import { useAuth } from '../lib/auth';
 import { calculatePoints } from '../lib/scoring';
-import { ADMIN_USERNAME } from '../config';
+import { ADMIN_USERNAME, WOODEN_SPOON_FLOOR_RATIO } from '../config';
 import { AdminPredictionEditor } from '../components/AdminPredictionEditor';
 import { TeamFlag } from '../components/TeamFlag';
 import { CollapsibleSection } from '../components/CollapsibleSection';
@@ -76,6 +76,17 @@ export default function LaTribuna() {
       return { ...u, dynamicScore: score };
     }).sort((a, b) => b.dynamicScore - a.dynamicScore);
   }, [users, matches, allPredictions]);
+
+  // Medalla de consolación (provisional): el de MENOR puntaje, pero solo entre
+  // quienes superan el piso (mitad del promedio). Así no premia a quien se tira.
+  const spoonUserId = useMemo(() => {
+    if (leaderboard.length < 2) return null;
+    const avg = leaderboard.reduce((s, u) => s + u.dynamicScore, 0) / leaderboard.length;
+    const floor = WOODEN_SPOON_FLOOR_RATIO * avg;
+    const eligible = leaderboard.filter(u => u.dynamicScore >= floor);
+    if (eligible.length === 0) return null;
+    return eligible.reduce((worst, u) => (u.dynamicScore < worst.dynamicScore ? u : worst)).id;
+  }, [leaderboard]);
 
   const currentPredictions = useMemo(() => {
     return allPredictions.filter(p => p.userId === selectedUserId);
@@ -193,6 +204,7 @@ export default function LaTribuna() {
           {leaderboard.map((u, i) => {
             const isMe = u.id === user?.id;
             const isSelected = u.id === selectedUserId;
+            const isSpoon = u.id === spoonUserId;
             const medal = i < 3 ? ['🥇', '🥈', '🥉'][i] : null;
             return (
               <motion.button
@@ -212,6 +224,7 @@ export default function LaTribuna() {
                 <span className="flex-1 font-bold text-sm truncate">
                   {u.username}
                   {isMe && <span className="text-[#FCD116] font-extrabold"> (Tú)</span>}
+                  {isSpoon && <span title="Medalla de consolación (provisional)"> 🥄</span>}
                 </span>
                 {isSelected && (
                   <span className="text-[10px] uppercase tracking-wider font-black text-[#FCD116] shrink-0">Viendo</span>
@@ -226,6 +239,11 @@ export default function LaTribuna() {
         <p className="text-center text-xs text-slate-400 -mt-1">
           Toca a un jugador para ver sus predicciones.
         </p>
+        {spoonUserId && (
+          <p className="text-center text-xs text-slate-400 -mt-2">
+            🥄 = medalla de consolación provisional (peor puntaje entre quienes superan el {Math.round(WOODEN_SPOON_FLOOR_RATIO * 100)}% del promedio).
+          </p>
+        )}
       </header>
 
       {/* Jugador en foco */}

@@ -1,10 +1,73 @@
+import { useState } from 'react';
+import { PRIZES, SPONSORS, IDEA_BY, MEDAL_IMG, WOODEN_SPOON_FLOOR_RATIO } from '../config';
+
+const sponsorsText =
+  SPONSORS.length > 1
+    ? `${SPONSORS.slice(0, -1).join(', ')} y ${SPONSORS[SPONSORS.length - 1]}`
+    : SPONSORS[0];
+
+const floorPct = Math.round(WOODEN_SPOON_FLOOR_RATIO * 100);
+
+function PodiumGrid() {
+  const items = [
+    { medal: '🥇', place: '1er puesto', amount: PRIZES.first },
+    { medal: '🥈', place: '2do puesto', amount: PRIZES.second },
+    { medal: '🥉', place: '3er puesto', amount: PRIZES.third },
+  ];
+  return (
+    <div className="grid grid-cols-3 gap-2">
+      {items.map(it => (
+        <div key={it.place} className="bg-white/70 rounded-2xl p-3 text-center border border-slate-100">
+          <div className="text-2xl leading-none">{it.medal}</div>
+          <div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mt-1">{it.place}</div>
+          <div className="font-black text-[#003893] text-sm mt-0.5">{it.amount}</div>
+          <div className="text-[10px] text-slate-400 font-semibold">COP</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Imagen de la medalla con respaldo (🥄) si el archivo aún no está en public/. */
+function MedalImage() {
+  const [err, setErr] = useState(false);
+  if (err) {
+    return (
+      <div className="w-28 h-28 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center text-5xl shrink-0">
+        🥄
+      </div>
+    );
+  }
+  return (
+    <img
+      src={MEDAL_IMG}
+      alt="Medalla de consolación"
+      onError={() => setErr(true)}
+      className="w-28 h-28 object-contain shrink-0"
+    />
+  );
+}
+
 export default function Rules() {
   return (
     <div className="space-y-6 pb-8">
-      <header className="mb-6">
+      <header className="mb-2">
         <h1 className="text-3xl font-black tracking-tight text-slate-900">Reglas</h1>
         <p className="text-slate-500 mt-1">Cómo se calculan los puntos de la quiniela.</p>
       </header>
+
+      {/* Premiación (resumen) — elemento #1 */}
+      <div className="bg-gradient-to-br from-[#FCD116]/30 to-[#003893]/10 rounded-3xl p-5 border border-[#FCD116] shadow-sm">
+        <h2 className="text-center font-black text-[#003893] text-lg flex items-center justify-center gap-2">
+          🏆 Premiación
+        </h2>
+        <div className="mt-3">
+          <PodiumGrid />
+        </div>
+        <p className="text-center text-sm text-slate-600 mt-3">
+          Patrocinan esta premiación: <strong className="text-slate-800">{sponsorsText}</strong> 🙌
+        </p>
+      </div>
 
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-8">
         <section>
@@ -99,9 +162,50 @@ export default function Rules() {
             </div>
           </div>
         </section>
-        
+
         <section className="bg-blue-50 p-4 rounded-xl text-sm text-blue-800 font-medium border border-blue-100">
           Puedes <strong>crear o modificar tu predicción las veces que quieras hasta 5 minutos antes</strong> del inicio de cada partido. A partir de ese momento queda bloqueada y ya no se puede cambiar (horario de Colombia, UTC-5).
+        </section>
+      </div>
+
+      {/* Premiación (detalle) — al final */}
+      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-6">
+        <h2 className="text-xl font-black text-slate-800 flex items-center gap-2">
+          <span className="text-2xl">🏆</span> Premiación
+        </h2>
+
+        <section>
+          <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-3">El podio</h3>
+          <PodiumGrid />
+        </section>
+
+        <section>
+          <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-3">
+            Premio de consolación
+          </h3>
+          <div className="flex items-center gap-4 bg-amber-50 border border-amber-100 rounded-2xl p-4">
+            <MedalImage />
+            <div className="text-sm text-slate-600">
+              <p className="font-bold text-slate-800 mb-1">🥄 La Medalla del Último</p>
+              <p>
+                Una medalla (de honor… o de deshonor 😄) para el último lugar. Para evitar que
+                alguien pierda <strong>a propósito</strong>, se la lleva quien tenga <strong>menos
+                puntos</strong>, pero <strong>solo</strong> entre quienes hayan sumado al menos el{' '}
+                <strong>{floorPct}% del puntaje promedio</strong> del grupo. Si quedas muy por
+                debajo de eso, quedas fuera del premio: se premia la mala suerte honesta, no el
+                tirarse.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="bg-slate-50 rounded-2xl p-4 text-sm text-slate-600 border border-slate-100">
+          <p>
+            🙌 Esta premiación es posible gracias a <strong className="text-slate-800">{sponsorsText}</strong>.
+          </p>
+          <p className="mt-1">
+            💡 Idea del premio de consolación: <strong className="text-slate-800">{IDEA_BY}</strong>.
+          </p>
         </section>
       </div>
     </div>
