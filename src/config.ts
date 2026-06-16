@@ -15,7 +15,7 @@ export const IDEA_BY = 'Juan';
 // puntaje, pero solo entre quienes superen el piso (mitad del promedio del
 // grupo); así se evita "perder a propósito".
 export const WOODEN_SPOON_FLOOR_RATIO = 0.5;
-export const MEDAL_IMG = '/medalla-consolacion.png';
+export const MEDAL_IMG = '/medalla-consolacion.jpeg';
 
 // Aviso de novedades: se muestra una vez por persona mientras este id no
 // coincida con el guardado en localStorage. Cambiarlo => se vuelve a mostrar.
