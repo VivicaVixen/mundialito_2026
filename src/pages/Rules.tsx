@@ -33,7 +33,7 @@ function MedalImage() {
   const [err, setErr] = useState(false);
   if (err) {
     return (
-      <div className="w-28 h-28 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center text-5xl shrink-0">
+      <div className="w-full h-28 rounded-xl bg-white/60 border border-amber-200 flex items-center justify-center text-5xl">
         🥄
       </div>
     );
@@ -43,7 +43,7 @@ function MedalImage() {
       src={MEDAL_IMG}
       alt="Medalla de consolación"
       onError={() => setErr(true)}
-      className="w-28 h-28 object-contain shrink-0"
+      className="w-full max-h-48 object-contain rounded-xl"
     />
   );
 }
@@ -183,9 +183,9 @@ export default function Rules() {
           <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-3">
             Premio de consolación
           </h3>
-          <div className="flex items-center gap-4 bg-amber-50 border border-amber-100 rounded-2xl p-4">
+          <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4">
             <MedalImage />
-            <div className="text-sm text-slate-600">
+            <div className="mt-3 text-sm text-slate-600">
               <p className="font-bold text-slate-800 mb-1">🥄 La Medalla del Último</p>
               <p>
                 Una medalla (de honor… o de deshonor 😄) para el último lugar. Para evitar que
