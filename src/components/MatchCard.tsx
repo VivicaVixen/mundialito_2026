@@ -5,7 +5,7 @@ import { formatInTimeZone } from 'date-fns-tz';
 import { calculatePoints } from '../lib/scoring';
 import { useAuth } from '../lib/auth';
 import { ADMIN_USERNAME } from '../config';
-import { saveMatchResult } from '../lib/importMatches';
+import { saveMatchResult, saveMatchTeams } from '../lib/importMatches';
 import { TeamFlag } from './TeamFlag';
 
 const COLOMBIA_TZ = 'America/Bogota';
@@ -40,6 +40,10 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, userPrediction, onS
   const [realPenAway, setRealPenAway] = useState(match.awayPenalties?.toString() ?? '');
   const [savingResult, setSavingResult] = useState(false);
   const [resultMsg, setResultMsg] = useState('');
+  const [editHome, setEditHome] = useState(match.homeTeam);
+  const [editAway, setEditAway] = useState(match.awayTeam);
+  const [savingTeams, setSavingTeams] = useState(false);
+  const [teamsMsg, setTeamsMsg] = useState('');
 
   useEffect(() => {
     // Check if locked
@@ -110,6 +114,19 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, userPrediction, onS
       setResultMsg('Error: ' + (e?.message || 'no se pudo guardar'));
     }
     setSavingResult(false);
+  };
+
+  const handleSaveTeams = async () => {
+    if (!editHome.trim() || !editAway.trim()) return;
+    setSavingTeams(true);
+    setTeamsMsg('');
+    try {
+      await saveMatchTeams(match.id, editHome.trim(), editAway.trim());
+      setTeamsMsg('✓ Guardado');
+    } catch (e: any) {
+      setTeamsMsg('Error: ' + (e?.message || 'no se pudo guardar'));
+    }
+    setSavingTeams(false);
   };
 
   const dateStr = formatInTimeZone(match.startTime, COLOMBIA_TZ, 'dd MMM - HH:mm');
@@ -233,6 +250,37 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, userPrediction, onS
           <div className="text-right">
             <span className="block text-2xl font-black text-[#CE1126]">+{currentPoints}</span>
             <span className="text-[10px] uppercase tracking-wider text-blue-600 font-bold">Puntos</span>
+          </div>
+        </div>
+      )}
+
+      {isAdmin && (
+        <div className="mt-2 rounded-2xl bg-slate-900 text-white p-3">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-300">Admin · Equipos</span>
+            {teamsMsg && <span className="text-[10px] text-slate-300">{teamsMsg}</span>}
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <input
+              type="text" value={editHome}
+              onChange={(e) => setEditHome(e.target.value)}
+              placeholder="Local"
+              className="flex-1 min-w-0 h-9 bg-white/10 text-white rounded-lg px-2 text-sm outline-none focus:ring-2 focus:ring-amber-300"
+            />
+            <span className="text-white/50">vs</span>
+            <input
+              type="text" value={editAway}
+              onChange={(e) => setEditAway(e.target.value)}
+              placeholder="Visitante"
+              className="flex-1 min-w-0 h-9 bg-white/10 text-white rounded-lg px-2 text-sm outline-none focus:ring-2 focus:ring-amber-300"
+            />
+            <button
+              onClick={handleSaveTeams}
+              disabled={savingTeams || !editHome.trim() || !editAway.trim()}
+              className="h-9 px-3 bg-amber-400 text-slate-900 rounded-lg text-xs font-bold active:scale-95 disabled:opacity-50"
+            >
+              {savingTeams ? '…' : 'Guardar'}
+            </button>
           </div>
         </div>
       )}

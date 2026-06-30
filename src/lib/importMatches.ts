@@ -93,3 +93,15 @@ export async function saveMatchResult(
   if (result.awayPenalties !== undefined) data.awayPenalties = result.awayPenalties;
   await setDoc(doc(collection(db, 'matches'), matchId), data, { merge: true });
 }
+
+/**
+ * Guarda/edita a mano los nombres de los equipos de un partido (solo admin).
+ * Útil cuando la API tiene delay y los equipos aún no se actualizaron.
+ */
+export async function saveMatchTeams(
+  matchId: string,
+  homeTeam: string,
+  awayTeam: string,
+): Promise<void> {
+  await setDoc(doc(collection(db, 'matches'), matchId), { homeTeam, awayTeam }, { merge: true });
+}
